@@ -111,7 +111,7 @@ template <typename K, typename D>
 void rbTree<K,D>::keyAndData(rbtNode<K,D> *curr) const {
 		// Performs inorder traversal
 	if(curr->left) keyAndData(curr->left);
-	traverseStr << curr->key << " : " << curr->data << '\n';
+	traverseStr << '(' << curr->key << ", " << curr->data << ") ";
 	if(curr->right) keyAndData(curr->right);
 }
 
@@ -191,12 +191,18 @@ std::string rbTree<K,D>::rbt_string(enum rbtraversal traversal, size_t level) co
 		case PRE_ORDER:			preOrder(root); break;
 		case IN_ORDER:			inOrder(root); break;
 		case POST_ORDER:		postOrder(root); break;
-		case KEY_AND_DATA:		keyAndData(root); break;
+		case KEYDATA:			keyAndData(root); break;
 		case LEVEL_ORDER:		levelOrder(); break;
 		case PRINT_LEVEL:		printLevel(root, level); break;
 	}
 		// Returns output of string buffer
 	return traverseStr.str();
+}
+
+template <typename K, typename D>
+std::ostream& operator<<(std::ostream &out, rbTree<K,D> &rbt) {
+	out << rbt.rbt_string();
+	return out;
 }
 
 #endif /* _rbt_STRING */

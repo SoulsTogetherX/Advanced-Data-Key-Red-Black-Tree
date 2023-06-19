@@ -1,6 +1,7 @@
 #ifndef _rbt_main_HEADER
 #define _rbt_main_HEADER
 #include	"RBT_defs.h"
+#include	<iostream>
 #include	<string>
 
 /*        CUSTOM DATA TYPES        */
@@ -40,6 +41,7 @@ class rbTree {
 
 	// Private Functions
 		// RBT_main
+	void dummy() {}
 	void leftRotate(rbtNode<K,D> *);
 	void rightRotate(rbtNode<K,D> *);
 	void deleteBranch(rbtNode<K,D> *);
@@ -47,6 +49,9 @@ class rbTree {
 	void rbt_free();
 
 		// RBT_traversal
+	template <typename F>
+		inline size_t nodesSpecifiedLevelBase(size_t, rbtNode<K,D>, F) const;
+
 	void nodesPre(rbtNode<K,D> *) const;
 	void nodesPreWithKey(rbtNode<K,D> *, K) const;
 	void nodesPreWithData(rbtNode<K,D> *, D) const;
@@ -64,6 +69,9 @@ class rbTree {
 	void nodesLevelWithData(D) const;
 	void nodesLevelWithDataKey(D, K) const;
 	size_t nodesSpecifiedLevel(size_t) const;
+	size_t nodesSpecifiedLevelWithKey(size_t, K) const;
+	size_t nodesSpecifiedLevelWithData(size_t, D) const;
+	size_t nodesSpecifiedLevelWithDataKey(size_t, D, K) const;
 	void getAllKeys(rbtNode<K,D> *) const;
 	void getAllData(rbtNode<K,D> *) const;
 	void countKey(rbtNode<K,D> *, K) const;
@@ -71,7 +79,7 @@ class rbTree {
 	void countKeyData(rbtNode<K,D> *, K, D) const;
 
 		// RBT_access
-	size_t findIdxBase(rbtNode<K,D> *) const;
+	inline size_t findIdxBase(rbtNode<K,D> *) const;
 
 	size_t getHeight(rbtNode<K,D> *) const;
 	void getWidth(rbtNode<K,D> *, size_t) const;
@@ -85,27 +93,23 @@ class rbTree {
 	size_t treeify(size_t, size_t, rbtNode<K,D> **, rbtNode<K,D> **);
 	size_t treeifyShallow(size_t, size_t, rbtNode<K,D> **, rbtNode<K,D> **);
 	template <K, D>
-		friend void mergeSortBase(rbtNode<K,D> **, size_t, size_t, size_t);
+		inline friend void mergeSortBase(rbtNode<K,D> **, size_t, size_t, size_t);
 	template <K, D>
-		friend void mergeSortCallerBase(rbtNode<K,D> **, size_t, size_t);
+		inline friend void mergeSortCallerBase(rbtNode<K,D> **, size_t, size_t);
 
 		// RBT_indel
 	template <typename F>
 		void removeDuplicatesBase(F);
 
 		// RBT_operation
-	template <typename F>
-		rbTree<K,D> orBase(const rbTree<K,D> &, F) const;
-	template <typename F>
-		rbTree<K,D> orBaseI(const rbTree<K,D> &, F);
-	template <typename F>
-		rbTree<K,D> andBase(const rbTree<K,D> &, F) const;
-	template <typename F>
-		rbTree<K,D> andBaseI(const rbTree<K,D> &, F);
-	template <typename F>
-		rbTree<K,D> andMostBase(const rbTree<K,D> &, F) const;
-	template <typename F>
-		rbTree<K,D> andMostBaseI(const rbTree<K,D> &, F);
+	template <typename F1, typename F2>
+		inline rbTree<K,D> orBase(const rbTree<K,D> &, F1, F2, bool = false, bool = false) const;
+	template <typename F1, typename F2>
+		inline rbTree<K,D> orBaseI(const rbTree<K,D> &, F1, F2, bool = false, bool = false);
+	template <typename F1, typename F2>
+		inline rbTree<K,D> andBase(const rbTree<K,D> &, F1, F2, bool = false) const;
+	template <typename F1, typename F2>
+		inline rbTree<K,D> andBaseI(const rbTree<K,D> &, F1, F2, bool = false);
 
 		// RBT_function
 	void nodeReposition(rbtNode<K,D> **, rbtNode<K,D> **, rbtNode<K,D> **, rbtNode<K,D> *);
@@ -147,23 +151,25 @@ class rbTree {
 		void rbt_clear();
 
 			// RBT_traversal
+		rbtNode<K,D> **resize_helper(rbtNode<K,D> **, size_t) const;
+
 		rbtNode<K,D> **rbt_getAllNodes(enum rbtraversal = IN_ORDER) const;
 		rbtNode<K,D> **rbt_getAllNodes(rbtNode<K,D> **, enum rbtraversal = IN_ORDER) const;
 
-		rbtNode<K,D> **rbt_getAllNodesWithKey(K, size_t &, enum rbtraversal = IN_ORDER) const;
-		rbtNode<K,D> **rbt_getAllNodesWithKey(rbtNode<K,D> **, K, size_t &, enum rbtraversal = IN_ORDER) const;
+		rbtNode<K,D> **rbt_getAllNodesAtLevel(size_t &, size_t) const;
+		rbtNode<K,D> **rbt_getAllNodesAtLevel(rbtNode<K,D> **, size_t &, size_t) const;
 
-		rbtNode<K,D> **rbt_getAllNodesWithData(D, size_t &, enum rbtraversal = IN_ORDER) const;
-		rbtNode<K,D> **rbt_getAllNodesWithData(rbtNode<K,D> **, D, size_t &, enum rbtraversal = IN_ORDER) const;
+		rbtNode<K,D> **rbt_getAllNodesWithKey(K, size_t &, enum rbtraversal = IN_ORDER, size_t = 0) const;
+		rbtNode<K,D> **rbt_getAllNodesWithKey(rbtNode<K,D> **, K, size_t &, enum rbtraversal = IN_ORDER, size_t = 0) const;
 
-		rbtNode<K,D> **rbt_getAllNodesWithDataKey(D, K, size_t &, enum rbtraversal = IN_ORDER) const;
-		rbtNode<K,D> **rbt_getAllNodesWithDataKey(rbtNode<K,D> **, D, K, size_t &, enum rbtraversal = IN_ORDER) const;
+		rbtNode<K,D> **rbt_getAllNodesWithData(D, size_t &, enum rbtraversal = IN_ORDER, size_t = 0) const;
+		rbtNode<K,D> **rbt_getAllNodesWithData(rbtNode<K,D> **, D, size_t &, enum rbtraversal = IN_ORDER, size_t = 0) const;
 
-		rbtNode<K,D> **rbt_getAllNodesAtLevel(size_t, size_t &) const;
-		rbtNode<K,D> **rbt_getAllNodesAtLevel(rbtNode<K,D> **, size_t, size_t &) const;
+		rbtNode<K,D> **rbt_getAllNodesWithDataKey(D, K, size_t &, enum rbtraversal = IN_ORDER, size_t = 0) const;
+		rbtNode<K,D> **rbt_getAllNodesWithDataKey(rbtNode<K,D> **, D, K, size_t &, enum rbtraversal = IN_ORDER, size_t = 0) const;
 
-		K *rbt_getAllKeys() const;
-		D *rbt_getAllData() const;
+		K *rbt_getAllKeys(K * = 0) const;
+		D *rbt_getAllData(D * = 0) const;
 
 		rbtNode<K,D> *rbt_findKey(K) const;
 		rbtNode<K,D> *rbt_findData(D) const;
@@ -202,11 +208,8 @@ class rbTree {
 
 		rbtNode<K,D> *rbt_search(K, D) const;
 		rbtNode<K,D> *rbt_search(rbtNode<K,D> *) const;
-		rbtNode<K,D> *rbt_max() const;
-		rbtNode<K,D> *rbt_min() const;
 
 			// RBT_sort
-
 		inline static bool keyCompair(rbtNode<K,D> *, rbtNode<K,D> *);
 		inline static bool keyCompairR(rbtNode<K,D> *, rbtNode<K,D> *);
 		inline static bool dataCompair(rbtNode<K,D> *, rbtNode<K,D> *);
@@ -250,6 +253,10 @@ class rbTree {
 		void rbt_removeDuplicateKeys();
 		void rbt_removeDuplicateData();
 
+		D rbt_delete(K, D);
+		D rbt_deleteKey(K);
+		D rbt_deleteData(D);
+
 			// RBT_operation
 				// TREE UNION AND INTERSECTION
 		rbTree<K,D> operator|(const rbTree<K,D> &) const;
@@ -258,6 +265,22 @@ class rbTree {
 		rbTree<K,D> rbt_orI(const rbTree<K,D> &);
 		rbTree<K,D> rbt_orLeast(const rbTree<K,D> &) const;
 		rbTree<K,D> rbt_orLeastI(const rbTree<K,D> &);
+		rbTree<K,D> rbt_orMost(const rbTree<K,D> &) const;
+		rbTree<K,D> rbt_orMostI(const rbTree<K,D> &);
+
+		rbTree<K,D> rbt_orKey(const rbTree<K,D> &) const;
+		rbTree<K,D> rbt_orKeyI(const rbTree<K,D> &);
+		rbTree<K,D> rbt_orKeyLeast(const rbTree<K,D> &) const;
+		rbTree<K,D> rbt_orKeyLeastI(const rbTree<K,D> &);
+		rbTree<K,D> rbt_orKeyMost(const rbTree<K,D> &) const;
+		rbTree<K,D> rbt_orKeyMostI(const rbTree<K,D> &);
+
+		rbTree<K,D> rbt_orData(const rbTree<K,D> &) const;
+		rbTree<K,D> rbt_orDataI(const rbTree<K,D> &);
+		rbTree<K,D> rbt_orDataLeast(const rbTree<K,D> &) const;
+		rbTree<K,D> rbt_orDataLeastI(const rbTree<K,D> &);
+		rbTree<K,D> rbt_orDataMost(const rbTree<K,D> &) const;
+		rbTree<K,D> rbt_orDataMostI(const rbTree<K,D> &);
 
 		rbTree<K,D> operator^(const rbTree<K,D> &) const;
 		rbTree<K,D> operator^=(const rbTree<K,D> &);
@@ -265,16 +288,22 @@ class rbTree {
 		rbTree<K,D> rbt_xorI(const rbTree<K,D> &);
 		rbTree<K,D> rbt_xorLeast(const rbTree<K,D> &) const;
 		rbTree<K,D> rbt_xorLeastI(const rbTree<K,D> &);
+		rbTree<K,D> rbt_xorMost(const rbTree<K,D> &) const;
+		rbTree<K,D> rbt_xorMostI(const rbTree<K,D> &);
 
 		rbTree<K,D> rbt_xorKey(const rbTree<K,D> &) const;
 		rbTree<K,D> rbt_xorKeyI(const rbTree<K,D> &);
 		rbTree<K,D> rbt_xorKeyLeast(const rbTree<K,D> &) const;
 		rbTree<K,D> rbt_xorKeyLeastI(const rbTree<K,D> &);
+		rbTree<K,D> rbt_xorKeyMost(const rbTree<K,D> &) const;
+		rbTree<K,D> rbt_xorKeyMostI(const rbTree<K,D> &);
 
 		rbTree<K,D> rbt_xorData(const rbTree<K,D> &) const;
 		rbTree<K,D> rbt_xorDataI(const rbTree<K,D> &);
 		rbTree<K,D> rbt_xorDataLeast(const rbTree<K,D> &) const;
 		rbTree<K,D> rbt_xorDataLeastI(const rbTree<K,D> &);
+		rbTree<K,D> rbt_xorDataMost(const rbTree<K,D> &) const;
+		rbTree<K,D> rbt_xorDataMostI(const rbTree<K,D> &);
 
 		rbTree<K,D> operator&(const rbTree<K,D> &) const;
 		rbTree<K,D> operator&=(const rbTree<K,D> &);
@@ -321,17 +350,27 @@ class rbTree {
 
 				// TREE ADVANCED OPERATIONS 
 		rbTree<K,D> rbt_invert();
+		rbTree<K,D> rbt_invertI();
 		rbTree<K,D> *rbt_distribute(size_t, enum rbtraversal = LEVEL_ORDER, bool = false);
 
 			// RBT_limit
 		void rbt_clampKey(K, K);
 		void rbt_clampKey(size_t arrayLength, K *, K *);
 
+		void rbt_clampData(D, D);
+		void rbt_clampData(size_t arrayLength, D *, D *);
+
 		void rbt_excludeKey(K, K);
 		void rbt_excludeKey(size_t arrayLength, K *, K *);
 
+		void rbt_excludeData(D, D);
+		void rbt_excludeData(size_t arrayLength, D *, D *);
+
 		void rbt_upperLimitKey(K);
 		void rbt_lowerLimitKey(K);
+
+		void rbt_upperLimitData(D);
+		void rbt_lowerLimitData(D);
 
 		void rbt_deleteHighestKey(const size_t);
 		void rbt_removeHighestKey(const size_t);
@@ -372,6 +411,8 @@ class rbTree {
 
 			// RBT_string
 		std::string rbt_string(enum rbtraversal = IN_ORDER, size_t = 0) const;
+		template <K, D>
+			friend std::ostream& operator<<(std::ostream &, rbTree<K,D> &);
 };
 
 /*			Modules			*/

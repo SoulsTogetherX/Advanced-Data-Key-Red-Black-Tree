@@ -540,6 +540,51 @@ rbTree<K,D> rbTree<K,D>::rbt_invert() {
 		return *this;
 
 		// Initializes the needed values
+	rbtNode<K,D> **rbtNodes, **IdxS, **IdxE, **IdxM;
+
+		// Gets the needed nodes and indexes
+	IdxS = rbtNodes = rbt_getAllNodes();
+	IdxE = IdxS + size - 1;
+	IdxM = new rbtNode<K,D> *[size];
+
+		// Deep copies all the nodes over, reversing the priorities
+	while(rbtNodes <= IdxE)
+		*IdxM++ = new rbtNode<K,D>((*IdxS++)->key, (*IdxE--)->data);
+
+		// Clears accessed node array
+	delete [] rbtNodes;
+
+		// Moves the pointer back to the start
+	IdxM -= size;
+
+		// Sorts the nodes
+	fooPtr<K,D> = keyDataCompair;
+	mergeSortCallerBase(IdxM, 0, size - 1);
+
+		// Creates a tree from the duplicated nodes
+	rbTree<K,D> newTree = rbTree<K,D>();
+	newTree.size = size;
+	newTree.treeifyShallow(0, size - 1, IdxM, &newTree.root);
+
+		// Clears the new tree's node array
+	delete [] IdxM;
+
+		// Return the finished tree
+	return newTree;
+}
+
+/*
+ * function_identifier: Inverts the priority of all nodes in the tree (largest key swaps with smallest, second largest swaps with second smallest, etc.)
+ * parameters: 			N/A
+ * return value:		N/A
+*/
+template <typename K, typename D>
+rbTree<K,D> rbTree<K,D>::rbt_invertI() {
+		// Ignores the trival case
+	if (!size)
+		return *this;
+
+		// Initializes the needed values
 	rbtNode<K,D> **rbtNodes, **IdxS, **IdxE;
 	D tmp;
 

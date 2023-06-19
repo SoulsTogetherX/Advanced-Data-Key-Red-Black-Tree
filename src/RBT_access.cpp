@@ -206,7 +206,7 @@ size_t rbTree<K,D>::rbt_getInnerNodes() const {
  * return value:		The idex of the node
 */
 template <typename K, typename D>
-size_t rbTree<K,D>::findIdxBase(rbtNode<K,D> *curr) const {
+inline size_t rbTree<K,D>::findIdxBase(rbtNode<K,D> *curr) const {
 		// If the node doesn't exist, give an error
 	if (!curr)
 		throw std::out_of_range("node with given key and data is not within Red-Black Tree'");
@@ -580,28 +580,6 @@ rbtNode<K,D> *rbTree<K,D>::rbt_search(K key, D data) const {
 template <typename K, typename D>
 rbtNode<K,D> *rbTree<K,D>::rbt_search(rbtNode<K,D> *target) const {
 	return rbt_search(target->key, target->data);
-}
-
-/*
- * function_identifier: Finds a node, in the red-black tree, with the maximum data and key
- *						Key takes priority over data when finding max
- * parameters: 			N/A
- * return value:		A pointer to the node, with the max key and data values, in the given red-black tree
-*/
-template <typename K, typename D>
-rbtNode<K,D> *rbTree<K,D>::rbt_max() const {
-	return rbt_maxKey();
-}
-
-/*
- * function_identifier: Finds a node, in the red-black tree, with the maximum data and key
- *						Key takes priority over data when finding max
- * parameters: 			N/A
- * return value:		A pointer to the node, with the max key and data values, in the given red-black tree
-*/
-template <typename K, typename D>
-rbtNode<K,D> *rbTree<K,D>::rbt_min() const {
-	return rbt_minKey();
 }
 
 #endif /* _rbt_ACCESS */

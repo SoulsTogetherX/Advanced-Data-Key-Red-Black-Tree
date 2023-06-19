@@ -155,8 +155,8 @@ void rbt_string_test() {
 		exit(0);
 	}
 	try {
-		cout << "testing rbt_string KEY_AND_DATA..." << endl;
-		rbt1.rbt_string(KEY_AND_DATA);
+		cout << "testing rbt_string KEY_DATA..." << endl;
+		rbt1.rbt_string(KEY_DATA);
 	} catch (...) {
 		exit(0);
 	}
@@ -223,6 +223,7 @@ void rbt_traversal_test() {
 		delete [] rbt1.rbt_getAllNodesWithKey(8, size, IN_ORDER);
 		delete [] rbt1.rbt_getAllNodesWithKey(8, size, POST_ORDER);
 		delete [] rbt1.rbt_getAllNodesWithKey(8, size, LEVEL_ORDER);
+		delete [] rbt1.rbt_getAllNodesWithKey(8, size, PRINT_LEVEL, 3);
 	} catch (...) {
 		exit(0);
 	}
@@ -243,6 +244,7 @@ void rbt_traversal_test() {
 		delete [] rbt1.rbt_getAllNodesWithData(8, size, IN_ORDER);
 		delete [] rbt1.rbt_getAllNodesWithData(8, size, POST_ORDER);
 		delete [] rbt1.rbt_getAllNodesWithData(8, size, LEVEL_ORDER);
+		delete [] rbt1.rbt_getAllNodesWithData(8, size, PRINT_LEVEL, 3);
 	} catch (...) {
 		exit(0);
 	}
@@ -263,6 +265,7 @@ void rbt_traversal_test() {
 		delete [] rbt1.rbt_getAllNodesWithDataKey(8, 8, size, IN_ORDER);
 		delete [] rbt1.rbt_getAllNodesWithDataKey(8, 8, size, POST_ORDER);
 		delete [] rbt1.rbt_getAllNodesWithDataKey(8, 8, size, LEVEL_ORDER);
+		delete [] rbt1.rbt_getAllNodesWithDataKey(8, 8, size, PRINT_LEVEL, 3);
 	} catch (...) {
 		exit(0);
 	}
@@ -296,7 +299,9 @@ void rbt_traversal_test() {
 	try {
 		cout << "testing rbt_getAllKeys, rbt_getAllData..." << endl;
 		delete [] rbt1.rbt_getAllKeys();
+		delete [] rbt1.rbt_getAllKeys(new int[rbt1.rbt_getSize()]);
 		delete [] rbt1.rbt_getAllData();
+		delete [] rbt1.rbt_getAllData(new int[rbt1.rbt_getSize()]);
 	} catch (...) {
 		exit(0);
 	}
@@ -417,7 +422,7 @@ void rbt_access_test() {
 	}
 
 	try {
-		cout << "testing rbt_searchData..." << endl;
+		cout << "testing rbt_search..." << endl;
 		auto nodes = rbt1.rbt_getAllNodes();
 		for(int i=-500; i<=500; i++)
 			rbt1.rbt_search(i, -i);
@@ -442,14 +447,6 @@ void rbt_access_test() {
 		cout << "testing rbt_maxData, rbt_minData..." << endl;
 		rbt1.rbt_maxData();
 		rbt1.rbt_minData();
-	} catch (...) {
-		exit(0);
-	}
-
-	try {
-		cout << "testing rbt_max, rbt_min..." << endl;
-		rbt1.rbt_max();
-		rbt1.rbt_min();
 	} catch (...) {
 		exit(0);
 	}
@@ -517,7 +514,7 @@ void rbt_indel_test() {
 		rbt2.rbt_repInsert(500);
 
 		nodes = rbt2.rbt_getAllNodes();
-		rbt2.rbt_repInsert(32, nodes);
+		rbt2.rbt_repInsert(rbt2.rbt_getSize() / 2, nodes);
 
 		delete [] nodes;
 		rbt2.rbt_repInsertInc(8, 0, 2, values);
@@ -561,7 +558,7 @@ void rbt_indel_test() {
 	rbt2.rbt_repInsert(8, values);
 
 	nodes = rbt2.rbt_getAllNodes();
-	rbt2.rbt_repInsert(32, nodes);
+	rbt2.rbt_repInsert(rbt2.rbt_getSize() / 2, nodes);
 
 	rbt2.rbt_repInsertInc(8, 0, 2, values);
 	rbt2.rbt_repInsertInc(8, 18, 3, values);
@@ -594,7 +591,7 @@ void rbt_indel_test() {
 	rbt2.rbt_repInsert(8, values);
 
 	nodes = rbt2.rbt_getAllNodes();
-	rbt2.rbt_repInsert(32, nodes);
+	rbt2.rbt_repInsert(rbt2.rbt_getSize() / 2, nodes);
 
 	delete [] nodes;
 	rbt2.rbt_repInsertInc(8, 0, 2, values);
@@ -626,7 +623,7 @@ void rbt_indel_test() {
 	rbt2.rbt_repInsert(8, values);
 
 	nodes = rbt2.rbt_getAllNodes();
-	rbt2.rbt_repInsert(32, nodes);
+	rbt2.rbt_repInsert(rbt2.rbt_getSize() / 2, nodes);
 
 	delete [] nodes;
 	rbt2.rbt_repInsertInc(8, 0, 2, values);
@@ -641,7 +638,7 @@ void rbt_indel_test() {
 		rbt2.rbt_removeData(0);
 
 		nodes = rbt2.rbt_getAllNodes();
-		rbt2.rbt_removeData(nodes[0]);
+		rbt2.rbt_removeData(nodes[4]);
 
 		delete [] nodes;
 		rbt2.rbt_removeData(8, values);
@@ -658,7 +655,7 @@ void rbt_indel_test() {
 	rbt2.rbt_repInsert(8, values);
 
 	nodes = rbt2.rbt_getAllNodes();
-	rbt2.rbt_repInsert(32, nodes);
+	rbt2.rbt_repInsert(rbt2.rbt_getSize() / 2, nodes);
 
 	delete [] nodes;
 	rbt2.rbt_repInsertInc(8, 0, 2, values);
@@ -707,6 +704,19 @@ void rbt_limit_test() {
 	rbt3.rbt_repInsert(23, values);
 
 	try {
+		cout << "testing rbt_clampData..." << endl;
+
+		rbt3.rbt_clampData(-3, 99);
+		rbt3.rbt_clampData(2, st, ed);
+	} catch (...) {
+		exit(0);
+	}
+
+	rbt3.rbt_repInsert(23, values, values);
+	rbt3.rbt_repInsert(23, NULL, values);
+	rbt3.rbt_repInsert(23, values);
+
+	try {
 		cout << "testing rbt_excludeKey..." << endl;
 
 		rbt3.rbt_excludeKey(-99, -9);
@@ -720,10 +730,36 @@ void rbt_limit_test() {
 	rbt3.rbt_repInsert(23, values);
 
 	try {
+		cout << "testing rbt_excludeData..." << endl;
+
+		rbt3.rbt_excludeData(-3, 99);
+		rbt3.rbt_excludeData(2, st, ed);
+	} catch (...) {
+		exit(0);
+	}
+
+	rbt3.rbt_repInsert(23, values, values);
+	rbt3.rbt_repInsert(23, NULL, values);
+	rbt3.rbt_repInsert(23, values);
+
+	try {
 		cout << "testing rbt_upperLimitKey, rbt_lowerLimitKey..." << endl;
 
 		rbt3.rbt_upperLimitKey(8);
 		rbt3.rbt_lowerLimitKey(-1);
+	} catch (...) {
+		exit(0);
+	}
+
+	rbt3.rbt_repInsert(23, values, values);
+	rbt3.rbt_repInsert(23, NULL, values);
+	rbt3.rbt_repInsert(23, values);
+
+	try {
+		cout << "testing rbt_upperLimitData, rbt_lowerLimitData..." << endl;
+
+		rbt3.rbt_upperLimitData(8);
+		rbt3.rbt_lowerLimitData(-1);
 	} catch (...) {
 		exit(0);
 	}
@@ -780,11 +816,29 @@ void rbt_limit_test() {
 		exit(0);
 	}
 
+	rbt3.rbt_repInsert(23, values, values);
+	rbt3.rbt_repInsert(23, NULL, values);
+	rbt3.rbt_repInsert(23, values);
+
+	try {
+		cout << "testing rbt_delete, rbt_deleteKey, rbt_deleteData..." << endl;
+
+		rbt3.rbt_delete(0, 0);
+		rbt3.rbt_deleteKey(-1);
+		rbt3.rbt_deleteData(-2);
+
+		rbt3.rbt_delete(99, 99);
+		rbt3.rbt_deleteKey(99);
+		rbt3.rbt_deleteData(99);
+	} catch (...) {
+		exit(0);
+	}
+
 	cout << endl << "========================" << endl;
 }
 
 void rbt_value_test() {
-	cout << endl << "TESTING 'RBT_ops.cpp'!" << endl << endl;
+	cout << endl << "TESTING 'RBT_value.cpp'!" << endl << endl;
 
 	rbTree<int, int> rbt3;
 	int values[8] = {1,2,3,4,5,6,7,8};
@@ -844,7 +898,7 @@ void rbt_value_test() {
 
 	} catch (...) {
 		exit(0);
-	}	
+	}
 
 	cout << endl << "========================" << endl;
 }
@@ -918,6 +972,7 @@ void rbt_ops_test() {
 		cout << "testing rbt_invert..." << endl;
 
 		rbt5.rbt_invert();
+		rbt5.rbt_invertI();
 	} catch (...) {
 		exit(0);
 	}
@@ -957,10 +1012,104 @@ void rbt_setops_test() {
 	rbt5.rbt_repInsert(50);
 
 	try {
-		cout << "testing | and |= operations..." << endl;
+		cout << "testing |, rbt_or, |=, and rbt_orI operations..." << endl;
 
 		rbt4 | rbt5;
-		// rbt4 |= rbt5;
+		rbt4 | rbt4;
+		rbt4.rbt_or(rbt5);
+		rbt4.rbt_or(rbt4);
+		rbt4 |= rbt5;
+		rbt4 |= rbt4;
+		rbt4.rbt_orI(rbt5);
+		rbt4.rbt_orI(rbt4);
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
+		cout << "testing rbt_orLeast, rbt_orLeastI operations..." << endl;
+
+		rbt4.rbt_orLeast(rbt5);
+		rbt4.rbt_orLeast(rbt4);
+		rbt4.rbt_orLeastI(rbt5);
+		rbt4.rbt_orLeastI(rbt4);
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
+		cout << "testing rbt_orMost, rbt_orMostI operations..." << endl;
+
+		rbt4.rbt_orMost(rbt5);
+		rbt4.rbt_orMost(rbt4);
+		rbt4.rbt_orMostI(rbt5);
+		rbt4.rbt_orMostI(rbt4);
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
+		cout << "testing rbt_orKey and rbt_orKeyI operations..." << endl;
+
+		rbt4.rbt_orKey(rbt5);
+		rbt4.rbt_orKey(rbt4);
+		rbt4.rbt_orKeyI(rbt5);
+		rbt4.rbt_orKeyI(rbt4);
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
+		cout << "testing rbt_orKeyLeast and rbt_orKeyLeastI operations..." << endl;
+
+		rbt4.rbt_orKeyLeast(rbt5);
+		rbt4.rbt_orKeyLeast(rbt4);
+		rbt4.rbt_orKeyLeastI(rbt5);
+		rbt4.rbt_orKeyLeastI(rbt4);
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
+		cout << "testing rbt_orKeyMost and rbt_orKeyMostI operations..." << endl;
+
+		rbt4.rbt_orKeyMost(rbt5);
+		rbt4.rbt_orKeyMost(rbt4);
+		rbt4.rbt_orKeyMostI(rbt5);
+		rbt4.rbt_orKeyMostI(rbt4);
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
+		cout << "testing rbt_orData and rbt_orDataI operations..." << endl;
+
+		rbt4.rbt_orData(rbt5);
+		rbt4.rbt_orData(rbt4);
+		rbt4.rbt_orDataI(rbt5);
+		rbt4.rbt_orDataI(rbt4);
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
+		cout << "testing rbt_orDataLeast and rbt_orDataLeastI operations..." << endl;
+
+		rbt4.rbt_orDataLeast(rbt5);
+		rbt4.rbt_orDataLeast(rbt4);
+		rbt4.rbt_orDataLeastI(rbt5);
+		rbt4.rbt_orDataLeastI(rbt4);
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
+		cout << "testing rbt_orDataMost and rbt_orDataMostI operations..." << endl;
+
+		rbt4.rbt_orDataMost(rbt5);
+		rbt4.rbt_orDataMost(rbt4);
+		rbt4.rbt_orDataMostI(rbt5);
+		rbt4.rbt_orDataMostI(rbt4);
 	} catch (...) {
 		exit(0);
 	}
@@ -968,8 +1117,14 @@ void rbt_setops_test() {
 	try {
 		cout << "testing ^ and ^= operations..." << endl;
 
-		rbt5 ^ rbt4;
-		rbt5 ^= rbt4;
+		rbt4 ^ rbt5;
+		rbt4 ^ rbt4;
+		rbt4.rbt_xor(rbt5);
+		rbt4.rbt_xor(rbt4);
+		rbt4 ^= rbt5;
+		rbt4 ^= rbt4;
+		rbt4.rbt_xor(rbt5);
+		rbt4.rbt_xor(rbt4);
 	} catch (...) {
 		exit(0);
 	}
@@ -977,7 +1132,19 @@ void rbt_setops_test() {
 	try {
 		cout << "testing rbt_xorLeast and rbt_xorLeastI operations..." << endl;
 		rbt4.rbt_xorLeast(rbt5);
+		rbt4.rbt_xorLeast(rbt4);
 		rbt4.rbt_xorLeastI(rbt5);
+		rbt4.rbt_xorLeastI(rbt4);
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
+		cout << "testing rbt_xorMost and rbt_xorMostI operations..." << endl;
+		rbt4.rbt_xorMost(rbt5);
+		rbt4.rbt_xorMost(rbt4);
+		rbt4.rbt_xorMostI(rbt5);
+		rbt4.rbt_xorMostI(rbt4);
 	} catch (...) {
 		exit(0);
 	}
@@ -986,7 +1153,9 @@ void rbt_setops_test() {
 		cout << "testing rbt_xorKey and rbt_xorKeyI operations..." << endl;
 
 		rbt5.rbt_xorKey(rbt4);
+		rbt5.rbt_xorKey(rbt5);
 		rbt5.rbt_xorKeyI(rbt4);
+		rbt5.rbt_xorKeyI(rbt5);
 	} catch (...) {
 		exit(0);
 	}
@@ -995,7 +1164,20 @@ void rbt_setops_test() {
 		cout << "testing rbt_xorKeyLeast and rbt_xorKeyLeastI operations..." << endl;
 
 		rbt5.rbt_xorKeyLeast(rbt4);
+		rbt5.rbt_xorKeyLeast(rbt5);
 		rbt5.rbt_xorKeyLeastI(rbt4);
+		rbt5.rbt_xorKeyLeastI(rbt5);
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
+		cout << "testing rbt_xorKeyMost and rbt_xorKeyMostI operations..." << endl;
+
+		rbt5.rbt_xorKeyMost(rbt4);
+		rbt5.rbt_xorKeyMost(rbt5);
+		rbt5.rbt_xorKeyMostI(rbt4);
+		rbt5.rbt_xorKeyMostI(rbt5);
 	} catch (...) {
 		exit(0);
 	}
@@ -1004,7 +1186,9 @@ void rbt_setops_test() {
 		cout << "testing rbt_xorData and rbt_xorDataI operations..." << endl;
 
 		rbt5.rbt_xorData(rbt4);
+		rbt5.rbt_xorData(rbt5);
 		rbt5.rbt_xorDataI(rbt4);
+		rbt5.rbt_xorDataI(rbt5);
 	} catch (...) {
 		exit(0);
 	}
@@ -1013,7 +1197,20 @@ void rbt_setops_test() {
 		cout << "testing rbt_xorDataLeast and rbt_xorDataLeastI operations..." << endl;
 
 		rbt5.rbt_xorDataLeast(rbt4);
+		rbt5.rbt_xorDataLeast(rbt5);
 		rbt5.rbt_xorDataLeastI(rbt4);
+		rbt5.rbt_xorDataLeastI(rbt5);
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
+		cout << "testing rbt_xorDataMost and rbt_xorDataMostI operations..." << endl;
+
+		rbt5.rbt_xorDataMost(rbt4);
+		rbt5.rbt_xorDataMost(rbt5);
+		rbt5.rbt_xorDataMostI(rbt4);
+		rbt5.rbt_xorDataMostI(rbt5);
 	} catch (...) {
 		exit(0);
 	}
@@ -1022,7 +1219,13 @@ void rbt_setops_test() {
 		cout << "testing & and &= operations..." << endl;
 
 		rbt4 & rbt5;
+		rbt4 & rbt4;
+		rbt4.rbt_and(rbt5);
+		rbt4.rbt_and(rbt4);
 		rbt4 &= rbt5;
+		rbt4 &= rbt4;
+		rbt4.rbt_and(rbt5);
+		rbt4.rbt_and(rbt4);
 	} catch (...) {
 		exit(0);
 	}
@@ -1031,7 +1234,9 @@ void rbt_setops_test() {
 		cout << "testing rbt_andLeast and rbt_andLeastI operations..." << endl;
 
 		rbt5.rbt_andLeast(rbt4);
+		rbt5.rbt_andLeast(rbt5);
 		rbt5.rbt_andLeastI(rbt4);
+		rbt5.rbt_andLeastI(rbt5);
 	} catch (...) {
 		exit(0);
 	}
@@ -1040,7 +1245,9 @@ void rbt_setops_test() {
 		cout << "testing rbt_andMost and rbt_andMostI operations..." << endl;
 
 		rbt5.rbt_andMost(rbt4);
+		rbt5.rbt_andMost(rbt5);
 		rbt5.rbt_andMostI(rbt4);
+		rbt5.rbt_andMostI(rbt5);
 	} catch (...) {
 		exit(0);
 	}
@@ -1049,7 +1256,9 @@ void rbt_setops_test() {
 		cout << "testing rbt_andKey and rbt_andKeyI operations..." << endl;
 
 		rbt5.rbt_andKey(rbt4);
+		rbt5.rbt_andKey(rbt5);
 		rbt5.rbt_andKeyI(rbt4);
+		rbt5.rbt_andKeyI(rbt5);
 	} catch (...) {
 		exit(0);
 	}
@@ -1058,7 +1267,9 @@ void rbt_setops_test() {
 		cout << "testing rbt_andKeyLeast and rbt_andKeyLeastI operations..." << endl;
 
 		rbt5.rbt_andKeyLeast(rbt4);
+		rbt5.rbt_andKeyLeast(rbt5);
 		rbt5.rbt_andKeyLeastI(rbt4);
+		rbt5.rbt_andKeyLeastI(rbt5);
 	} catch (...) {
 		exit(0);
 	}
@@ -1067,7 +1278,9 @@ void rbt_setops_test() {
 		cout << "testing rbt_andKeyMost and rbt_andKeyMostI operations..." << endl;
 
 		rbt5.rbt_andKeyMost(rbt4);
+		rbt5.rbt_andKeyMost(rbt5);
 		rbt5.rbt_andKeyMostI(rbt4);
+		rbt5.rbt_andKeyMostI(rbt5);
 	} catch (...) {
 		exit(0);
 	}
@@ -1076,7 +1289,9 @@ void rbt_setops_test() {
 		cout << "testing rbt_andData and rbt_andDataI operations..." << endl;
 
 		rbt5.rbt_andData(rbt4);
+		rbt5.rbt_andData(rbt5);
 		rbt5.rbt_andDataI(rbt4);
+		rbt5.rbt_andDataI(rbt5);
 	} catch (...) {
 		exit(0);
 	}
@@ -1085,7 +1300,9 @@ void rbt_setops_test() {
 		cout << "testing rbt_andDataLeast and rbt_andDataLeastI operations..." << endl;
 
 		rbt5.rbt_andDataLeast(rbt4);
+		rbt5.rbt_andDataLeast(rbt5);
 		rbt5.rbt_andDataLeastI(rbt4);
+		rbt5.rbt_andDataLeastI(rbt5);
 	} catch (...) {
 		exit(0);
 	}
@@ -1094,7 +1311,9 @@ void rbt_setops_test() {
 		cout << "testing rbt_andDataMost and rbt_andDataMostI operations..." << endl;
 
 		rbt5.rbt_andDataMost(rbt4);
+		rbt5.rbt_andDataMost(rbt5);
 		rbt5.rbt_andDataMostI(rbt4);
+		rbt5.rbt_andDataMostI(rbt5);
 	} catch (...) {
 		exit(0);
 	}

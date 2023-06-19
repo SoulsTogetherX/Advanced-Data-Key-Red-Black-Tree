@@ -1371,4 +1371,40 @@ void rbTree<K,D>::rbt_removeDuplicateData() {
 	});
 }
 
+/*	============================================================================  */
+/* |                                                                            | */
+/* |                                  OTHER                                     | */
+/* |                                                                            | */
+/*	============================================================================  */
+
+/*
+ * function_identifier: Deletes a single nodes, from the red-black tree, which have the same key and data provided
+ * parameters: 			A key and data
+ * return value:		N/A
+*/
+template <typename K, typename D>
+D rbTree<K,D>::rbt_delete(K key, D data) {
+	return rbt_delete(rbt_search(key, data));
+}
+
+/*
+ * function_identifier: Deletes a single nodes, from the red-black tree, which have the same key provided
+ * parameters: 			A key and data
+ * return value:		N/A
+*/
+template <typename K, typename D>
+D rbTree<K,D>::rbt_deleteKey(K key) {
+	return rbt_delete(rbt_searchKey(key));
+}
+
+/*
+ * function_identifier: Deletes a single nodes, from the red-black tree, which have the same data provided
+ * parameters: 			A key and data
+ * return value:		N/A
+*/
+template <typename K, typename D>
+D rbTree<K,D>::rbt_deleteData(D data) {
+	return rbt_delete(rbt_searchData(data));
+}
+
 #endif /* _rbt_INSERTDELETE */

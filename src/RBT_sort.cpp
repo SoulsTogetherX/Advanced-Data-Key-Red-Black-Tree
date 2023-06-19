@@ -207,7 +207,7 @@ bool rbTree<K,D>::dataKeyCompairR(rbtNode<K,D> *IdxS, rbtNode<K,D> *IdxM) {
  * return value:		N/A
 */
 template <typename K, typename D>
-void mergeSortBase(rbtNode<K,D> **nodes, size_t st, size_t mi, size_t ed) {
+inline void mergeSortBase(rbtNode<K,D> **nodes, size_t st, size_t mi, size_t ed) {
 		// Sets up the needed arrays and pointers
 	rbtNode<K,D> **memo = new rbtNode<K,D> *[ed-st];
 	rbtNode<K,D> **IdxS = nodes + st, **IdxE1 = nodes + mi + 1;
@@ -243,14 +243,13 @@ void mergeSortBase(rbtNode<K,D> **nodes, size_t st, size_t mi, size_t ed) {
  * return value:		N/A
 */
 template <typename K, typename D>
-void mergeSortCallerBase(rbtNode<K,D> **nodes, size_t si, size_t ed) {
+inline void mergeSortCallerBase(rbtNode<K,D> **nodes, size_t si, size_t ed) {
 		// Checks if there is still more to sort
 		// If so, recursively call this function again, with subdivided arrays
 	if(si < ed) {
 			// Calculates the mid point
 		size_t mi = si + ((ed - si) >> 1);
 			// Recursively call this function again for subdivisions of the given array
-		fooPtr<K,D> = rbTree<K,D>::keyDataCompair;
 		mergeSortCallerBase(nodes, si, mi);
 		mergeSortCallerBase(nodes, mi + 1, ed);
 			// Merges the two sorted subdivided of the given arrays

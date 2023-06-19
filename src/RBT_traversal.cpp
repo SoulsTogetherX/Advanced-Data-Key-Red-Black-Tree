@@ -387,12 +387,13 @@ void rbTree<K,D>::nodesLevelWithDataKey(D data, K key) const {
 /*	============================================================================  */
 
 /*
- * function_identifier: Returns an array of all rbtNodes, in the given red-black tree, at a specified level
- * parameters: 			A pointer to a red-black tree and the level to extract data from
+ * function_identifier: The base template for PRINT_LEVEL node access traversing
+ * parameters: 			The level to access, a rbtNode with a key/data pair criteria, and a function to filter the level's nodes with
  * return value:		An array of rbtNodes (return by reference [global variable]) and the number of nodes (return by value)
 */
 template <typename K, typename D>
-size_t rbTree<K,D>::nodesSpecifiedLevel(size_t level) const {
+template <typename F>
+inline size_t rbTree<K,D>::nodesSpecifiedLevelBase(size_t level, rbtNode<K,D> filter, F foo) const {
 		// Initializes the need variables
 	rbtNode<K,D> **nodeE, **nodeS, **nodeM, **nodeArray = (rbtNode<K,D> **)nodePtr, *temp;
 	size_t nodes = (1 << level), offset = (nodes >> 1), shift = 0;
@@ -422,8 +423,90 @@ size_t rbTree<K,D>::nodesSpecifiedLevel(size_t level) const {
 		}
 	}
 
+		// Cycles through the last level
+	foo(nodeE, nodeArray, filter);
+
 		// Returns the accessed nodes
 	return (nodeE - nodeArray);
+}
+
+/*
+ * function_identifier: Returns an array of all rbtNodes, in the given red-black tree, at a specified level
+ * parameters: 			The level to extract rbtNodes from
+ * return value:		An array of rbtNodes (return by reference [global variable]) and the number of nodes (return by value)
+*/
+template <typename K, typename D>
+size_t rbTree<K,D>::nodesSpecifiedLevel(size_t level) const {
+	return nodesSpecifiedLevelBase(level, rbtNode<K,D>(K(), D()), [] (...) -> void {});
+}
+
+/*
+ * function_identifier: Returns an array of all rbtNodes that have the given key, in the given red-black tree, at a specified level
+ * parameters: 			The level to extract nodes from and a key criteria
+ * return value:		An array of rbtNodes (return by reference [global variable]) and the number of nodes (return by value)
+*/
+template <typename K, typename D>
+size_t rbTree<K,D>::nodesSpecifiedLevelWithKey(size_t level, K key) const {
+	return nodesSpecifiedLevelBase(level, rbtNode<K,D>(key, D()), [] (rbtNode<K,D> **&nodeE, rbtNode<K,D> **nodeS, rbtNode<K,D> filter) -> void {
+			// Initializes the need variables
+		rbtNode<K,D> **nodeM = nodeS;
+			// Cycles through all nodes in the current level
+		while(nodeS < nodeE) {
+				// If node exists and is of the desired key, place it in the next available spot
+			if ((*nodeS) && (*nodeS)->key == filter.key)
+				*nodeM++ = (*nodeS);
+				// Increment the node index
+			nodeS++;
+		}
+			// Changes the end node appropriately
+		nodeE = nodeM;
+	});
+}
+
+/*
+ * function_identifier: Returns an array of all rbtNodes that have the given data, in the given red-black tree, at a specified level
+ * parameters: 			The level to extract rbtNodes from and a data criteria
+ * return value:		An array of rbtNodes (return by reference [global variable]) and the number of nodes (return by value)
+*/
+template <typename K, typename D>
+size_t rbTree<K,D>::nodesSpecifiedLevelWithData(size_t level, D data) const {
+	return nodesSpecifiedLevelBase(level, rbtNode<K,D>(K(), data), [] (rbtNode<K,D> **&nodeE, rbtNode<K,D> **nodeS, rbtNode<K,D> filter) -> void {
+			// Initializes the need variables
+		rbtNode<K,D> **nodeM = nodeS;
+			// Cycles through all nodes in the current level
+		while(nodeS < nodeE) {
+				// If node exists and is of the desired key, place it in the next available spot
+			if ((*nodeS) && (*nodeS)->data == filter.data)
+				*nodeM++ = (*nodeS);
+				// Increment the node index
+			nodeS++;
+		}
+			// Changes the end node appropriately
+		nodeE = nodeM;
+	});
+}
+
+/*
+ * function_identifier: Returns an array of all rbtNodes that have the given data/key pair, in the given red-black tree, at a specified level
+ * parameters: 			The level to extract rbtNodes from and a data/key pair criteria
+ * return value:		An array of rbtNodes (return by reference [global variable]) and the number of nodes (return by value)
+*/
+template <typename K, typename D>
+size_t rbTree<K,D>::nodesSpecifiedLevelWithDataKey(size_t level, D data, K key) const {
+	return nodesSpecifiedLevelBase(level, rbtNode<K,D>(key, data), [] (rbtNode<K,D> **&nodeE, rbtNode<K,D> **nodeS, rbtNode<K,D> filter) -> void {
+			// Initializes the need variables
+		rbtNode<K,D> **nodeM = nodeS;
+			// Cycles through all nodes in the current level
+		while(nodeS < nodeE) {
+				// If node exists and is of the desired key, place it in the next available spot
+			if ((*nodeS) && (*nodeS)->key == filter.key && (*nodeS)->data == filter.data)
+				*nodeM++ = (*nodeS);
+				// Increment the node index
+			nodeS++;
+		}
+			// Changes the end node appropriately
+		nodeE = nodeM;
+	});
 }
 
 /*	============================================================================  */
@@ -431,6 +514,29 @@ size_t rbTree<K,D>::nodesSpecifiedLevel(size_t level) const {
 /* |                     	   GET NODE CONTROLLERS                             | */
 /* |                                                                            | */
 /*	============================================================================  */
+
+	/*		HELPER		 */
+
+/*
+ * function_identifier: Resizes an array of rbtNodes to best fit the contents
+ * parameters: 			An array of rbtNodes and the expected length
+ * return value:		The resized array of rbtNodes
+*/
+template <typename K, typename D>
+rbtNode<K,D> **rbTree<K,D>::resize_helper(rbtNode<K,D> **nodeArray, size_t nodes) const {
+		// Allocates new memory
+	rbtNode<K,D> **tempPlace = nodeArray, **endArray;
+	nodeArray = new rbtNode<K,D>*[nodes]; endArray = nodeArray + nodes;
+		// Shallow copies values over
+	for(; nodeArray != endArray; tempPlace++, nodeArray++)
+		*nodeArray = *tempPlace;
+		// Deletes old array
+	delete [] (rbtNode<K,D> **)(nodePtr - nodes);
+		// Returns new array's address
+	return nodeArray - nodes;
+}
+
+	/*		NO FILTER		 */
 
 /*
  * function_identifier: Returns an array of all rbtNodes, in the given red-black tree, via a traversal (no TEST_ORDER or PRINT_LEVEL)
@@ -483,240 +589,12 @@ rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodes(rbtNode<K,D> **nodeArray, enum rbtra
 }
 
 /*
- * function_identifier: Returns an array of all rbtNodes that have the given key, in the given red-black tree, via a traversal (no TEST_ORDER or PRINT_LEVEL)
- * parameters: 			A pointer to a red-black tree
- * return value:		An array of rbtNodes that have the given key (caller's responsibility to clear it)
-*/
-template <typename K, typename D>
-rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesWithKey(K key, size_t &nodes, enum rbtraversal traversal) const {
-		// Returns NULL if invaild
-	if(!root || traversal == TEST_ORDER || traversal == PRINT_LEVEL)
-		return NULL;
-		// Allocates enough memory to hold all nodes in
-	rbtNode<K,D> **nodeArray = new rbtNode<K,D>*[size];
-	nodePtr = (void **)nodeArray;
-		// Writes all the nodes into nodeArray, via an the given traversal
-	switch(traversal) {
-		case PRE_ORDER:			nodesPreWithKey(root, key); break;
-		case IN_ORDER:			nodesInWithKey(root, key); break;
-		case POST_ORDER:		nodesPostWithKey(root, key); break;
-		case LEVEL_ORDER:		nodesLevelWithKey(key); break;
-		default:;
-	}
-
-		// Calculate the number of nodes put into the return array
-	nodes = (nodePtr - (void **)nodeArray);
-
-		// Checks if resize is needed, if so, resize array to match nodes copied
-	if (nodes < size) {
-			// Allocates new memory
-		rbtNode<K,D> **tempPlace = nodeArray, **endArray;
-		nodeArray = new rbtNode<K,D>*[nodes]; endArray = nodeArray + nodes;
-			// Shallow copies values over
-		for(; nodeArray != endArray; tempPlace++, nodeArray++)
-			*nodeArray = *tempPlace;
-			// Deletes old array
-		delete [] (rbtNode<K,D> **)(nodePtr - nodes);
-			// Returns new array's address
-		return nodeArray - nodes;
-	}
-
-		// Returns the nodeArray
-	return nodeArray;
-}
-
-/*
- * function_identifier: Returns an array of all rbtNodes that have the given key, in the given red-black tree, via a traversal (no TEST_ORDER or PRINT_LEVEL)
- *						It uses the array given and does not resize (your fault if the array doesn't have enough space)
- * parameters: 			A pointer to a red-black tree
- * return value:		An array of rbtNodes that have the given key (caller's responsibility to clear it)
-*/
-template <typename K, typename D>
-rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesWithKey(rbtNode<K,D> **nodeArray, K key, size_t &nodes, enum rbtraversal traversal) const {
-		// Returns NULL if invaild
-	if(!root || traversal == TEST_ORDER || traversal == PRINT_LEVEL)
-		return NULL;
-		// Coverts the array into void pointer
-	nodePtr = (void **)nodeArray;
-		// Writes all the nodes into nodeArray, via an the given traversal
-	switch(traversal) {
-		case PRE_ORDER:			nodesPreWithKey(root, key); break;
-		case IN_ORDER:			nodesInWithKey(root, key); break;
-		case POST_ORDER:		nodesPostWithKey(root, key); break;
-		case LEVEL_ORDER:		nodesLevelWithKey(key); break;
-		default:;
-	}
-
-		// Calculate the number of nodes put into the return array
-	nodes = (nodePtr - (void **)nodeArray);
-
-		// Returns the nodeArray
-	return nodeArray;
-}
-
-/*
- * function_identifier: Returns an array of all rbtNodes that have the given data, in the given red-black tree, via a traversal (no TEST_ORDER or PRINT_LEVEL)
- * parameters: 			A pointer to a red-black tree
- * return value:		An array of rbtNodes that have the given data (caller's responsibility to clear it)
-*/
-template <typename K, typename D>
-rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesWithData(D data, size_t &nodes, enum rbtraversal traversal) const {
-		// Returns NULL if invaild
-	if(!root || traversal == TEST_ORDER || traversal == PRINT_LEVEL)
-		return NULL;
-		// Allocates enough memory to hold all nodes in
-	rbtNode<K,D> **nodeArray = new rbtNode<K,D>*[size];
-	nodePtr = (void **)nodeArray;
-		// Writes all the nodes into nodeArray, via an the given traversal
-	switch(traversal) {
-		case PRE_ORDER:			nodesPreWithData(root, data); break;
-		case IN_ORDER:			nodesInWithData(root, data); break;
-		case POST_ORDER:		nodesPostWithData(root, data); break;
-		case LEVEL_ORDER:		nodesLevelWithData(data); break;
-		default:;
-	}
-
-		// Calculate the number of nodes put into the return array
-	nodes = (nodePtr - (void **)nodeArray);
-
-		// Checks if resize is needed, if so, resize array to match nodes copied
-	if (nodes < size) {
-			// Allocates new memory
-		rbtNode<K,D> **tempPlace = nodeArray, **endArray;
-		nodeArray = new rbtNode<K,D>*[nodes]; endArray = nodeArray + nodes;
-			// Shallow copies values over
-		for(; nodeArray != endArray; tempPlace++, nodeArray++)
-			*nodeArray = *tempPlace;
-			// Deletes old array
-		delete [] (rbtNode<K,D> **)(nodePtr - nodes);
-			// Returns new array's address
-		return nodeArray - nodes;
-	}
-
-		// Returns the nodeArray
-	return nodeArray;
-}
-
-/*
- * function_identifier: Returns an array of all rbtNodes that have the given data, in the given red-black tree, via a traversal (no TEST_ORDER or PRINT_LEVEL)
- *						It uses the array given and does not resize (your fault if the array doesn't have enough space)
- * parameters: 			A pointer to a red-black tree
- * return value:		An array of rbtNodes that have the given data (caller's responsibility to clear it)
-*/
-template <typename K, typename D>
-rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesWithData(rbtNode<K,D> **nodeArray, D data, size_t &nodes, enum rbtraversal traversal) const {
-		// Returns NULL if invaild
-	if(!root || traversal == TEST_ORDER || traversal == PRINT_LEVEL)
-		return NULL;
-		// Coverts the array into void pointer
-	nodePtr = (void **)nodeArray;
-		// Writes all the nodes into nodeArray, via an the given traversal
-	switch(traversal) {
-		case PRE_ORDER:			nodesPreWithData(root, data); break;
-		case IN_ORDER:			nodesInWithData(root, data); break;
-		case POST_ORDER:		nodesPostWithData(root, data); break;
-		case LEVEL_ORDER:		nodesLevelWithData(data); break;
-		default:;
-	}
-
-		// Calculate the number of nodes put into the return array
-	nodes = (nodePtr - (void **)nodeArray);
-
-		// Returns the nodeArray
-	return nodeArray;
-}
-
-/*
- * function_identifier: Returns an array of all rbtNodes that have the given data and key, in the given red-black tree, via a traversal (no TEST_ORDER or PRINT_LEVEL)
- * parameters: 			A pointer to a red-black tree
- * return value:		An array of rbtNodes that have the given data (caller's responsibility to clear it)
-*/
-template <typename K, typename D>
-rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesWithDataKey(D data, K key, size_t &nodes, enum rbtraversal traversal) const {
-		// Returns NULL if invaild
-	if(traversal == TEST_ORDER || traversal == PRINT_LEVEL)
-		return NULL;
-
-		// Find the key to start traversing from
-	rbtNode<K,D> *curr;
-	if(!(curr = rbt_searchKey(key)))
-		return NULL;
-
-		// Allocates enough memory to hold all nodes in
-	rbtNode<K,D> **nodeArray = new rbtNode<K,D>*[size];
-	nodePtr = (void **)nodeArray;
-		// Writes all the nodes into nodeArray, via an the given traversal
-	switch(traversal) {
-		case PRE_ORDER:			nodesPreWithDataKey(curr, data, key); break;
-		case IN_ORDER:			nodesInWithDataKey(curr, data, key); break;
-		case POST_ORDER:		nodesPostWithDataKey(curr, data, key); break;
-		case LEVEL_ORDER:		nodesLevelWithDataKey(data, key); break;
-		default:;
-	}
-
-		// Calculate the number of nodes put into the return array
-	nodes = (nodePtr - (void **)nodeArray);
-
-		// Checks if resize is needed, if so, resize array to match nodes copied
-	if (nodes < size) {
-			// Allocates new memory
-		rbtNode<K,D> **tempPlace = nodeArray, **endArray;
-		nodeArray = new rbtNode<K,D>*[nodes]; endArray = nodeArray + nodes;
-			// Shallow copies values over
-		for(; nodeArray != endArray; tempPlace++, nodeArray++)
-			*nodeArray = *tempPlace;
-			// Deletes old array
-		delete [] (rbtNode<K,D> **)(nodePtr - nodes);
-			// Returns new array's address
-		return nodeArray - nodes;
-	}
-
-		// Returns the nodeArray
-	return nodeArray;
-}
-
-/*
- * function_identifier: Returns an array of all rbtNodes that have the given data and key, in the given red-black tree, via a traversal (no TEST_ORDER or PRINT_LEVEL)
- *						It uses the array given and does not resize (your fault if the array doesn't have enough space)
- * parameters: 			A pointer to a red-black tree
- * return value:		An array of rbtNodes that have the given data (caller's responsibility to clear it)
-*/
-template <typename K, typename D>
-rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesWithDataKey(rbtNode<K,D> **nodeArray, D data, K key, size_t &nodes, enum rbtraversal traversal) const {
-		// Returns NULL if invaild
-	if(traversal == TEST_ORDER || traversal == PRINT_LEVEL)
-		return NULL;
-
-		// Find the key to start traversing from
-	rbtNode<K,D> *curr;
-	if(!(curr = rbt_searchKey(key)))
-		return NULL;
-
-		// Coverts the array into void pointer
-	nodePtr = (void **)nodeArray;
-		// Writes all the nodes into nodeArray, via an the given traversal
-	switch(traversal) {
-		case PRE_ORDER:			nodesPreWithDataKey(curr, data, key); break;
-		case IN_ORDER:			nodesInWithDataKey(curr, data, key); break;
-		case POST_ORDER:		nodesPostWithDataKey(curr, data, key); break;
-		case LEVEL_ORDER:		nodesLevelWithDataKey(data, key); break;
-		default:;
-	}
-
-		// Calculate the number of nodes put into the return array
-	nodes = (nodePtr - (void **)nodeArray);
-
-		// Returns the nodeArray
-	return nodeArray;
-}
-
-/*
  * function_identifier: Returns an array of all rbtNodes, in the given red-black tree, at a specified level
  * parameters: 			The level to extract data from and an address to return the number of nodes copied (return by reference)
  * return value:		An array of rbtNodes (caller's responsibility to clear it)
 */
 template <typename K, typename D>
-rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesAtLevel(size_t level, size_t &nodes) const {
+rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesAtLevel(size_t &nodes, size_t level) const {
 		// Returns NULL if invaild
 	if(!root) return NULL;
 		// Allocates enough memory to hold all nodes in
@@ -726,18 +604,8 @@ rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesAtLevel(size_t level, size_t &nodes) 
 	nodes = nodesSpecifiedLevel(level);
 
 		// Checks if resize is needed, if so, resize array to match nodes copied
-	if (nodes < ((size_t)1 << level)) {
-			// Allocates new memory
-		rbtNode<K,D> **tempPlace = nodeArray, **endArray;
-		nodeArray = new rbtNode<K,D>*[nodes]; endArray = nodeArray + nodes;
-			// Shallow copies values over
-		for(; nodeArray != endArray; tempPlace++, nodeArray++)
-			*nodeArray = *tempPlace;
-			// Deletes old array
-		delete [] (rbtNode<K,D> **)nodePtr;
-			// Returns new array's address
-		return nodeArray - nodes;
-	}
+	if (nodes < ((size_t)1 << level))
+		return resize_helper(nodeArray, nodes);
 
 		// Returns the nodeArray
 	return nodeArray;
@@ -750,7 +618,7 @@ rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesAtLevel(size_t level, size_t &nodes) 
  * return value:		An array of rbtNodes (caller's responsibility to clear it)
 */
 template <typename K, typename D>
-rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesAtLevel(rbtNode<K,D> **nodeArray, size_t level, size_t &nodes) const {
+rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesAtLevel(rbtNode<K,D> **nodeArray, size_t &nodes, size_t level) const {
 		// Returns NULL if invaild
 	if(!root) return 0;
 		// Coverts the array into void pointer
@@ -763,6 +631,250 @@ rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesAtLevel(rbtNode<K,D> **nodeArray, siz
 	return nodeArray;
 }
 
+	/*		KEYS	 */
+
+/*
+ * function_identifier: Returns an array of all rbtNodes that have the given key, in the given red-black tree, via a traversal (no TEST_ORDER)
+ * parameters: 			A pointer to a red-black tree
+ * return value:		An array of rbtNodes that have the given key (caller's responsibility to clear it)
+*/
+template <typename K, typename D>
+rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesWithKey(K key, size_t &nodes, enum rbtraversal traversal, size_t level) const {
+		// Returns NULL if invaild
+	if(!root || traversal == TEST_ORDER)
+		return NULL;
+		// Branches off if PRINT_LEVEL
+	if (traversal == PRINT_LEVEL) {
+			// Allocates enough memory to hold all nodes in
+		rbtNode<K,D> **nodeArray = new rbtNode<K,D>*[1 << level];
+		nodePtr = (void **)nodeArray;
+			// Writes all the nodes into nodeArray
+		nodes = nodesSpecifiedLevelWithKey(level, key);
+			// Checks if resize is needed, if so, resize array to match nodes copied
+		if (nodes < ((size_t)1 << level))
+			return resize_helper(nodeArray, nodes);
+			// Returns the nodeArray
+		return nodeArray;
+	}
+		// Allocates enough memory to hold all nodes in
+	rbtNode<K,D> **nodeArray = new rbtNode<K,D>*[size];
+	nodePtr = (void **)nodeArray;
+		// Writes all the nodes into nodeArray, via an the given traversal
+	switch(traversal) {
+		case PRE_ORDER:			nodesPreWithKey(root, key); break;
+		case IN_ORDER:			nodesInWithKey(root, key); break;
+		case POST_ORDER:		nodesPostWithKey(root, key); break;
+		case LEVEL_ORDER:		nodesLevelWithKey(key); break;
+		default:;
+	}
+		// Calculate the number of nodes put into the return array
+	nodes = (nodePtr - (void **)nodeArray);
+		// Checks if resize is needed, if so, resize array to match nodes copied
+	if (nodes < size)
+		return resize_helper(nodeArray, nodes);
+		// Returns the nodeArray
+	return nodeArray;
+}
+
+/*
+ * function_identifier: Returns an array of all rbtNodes that have the given key, in the given red-black tree, via a traversal (no TEST_ORDER)
+ *						It uses the array given and does not resize (your fault if the array doesn't have enough space)
+ * parameters: 			A pointer to a red-black tree
+ * return value:		An array of rbtNodes that have the given key (caller's responsibility to clear it)
+*/
+template <typename K, typename D>
+rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesWithKey(rbtNode<K,D> **nodeArray, K key, size_t &nodes, enum rbtraversal traversal, size_t level) const {
+		// Returns NULL if invaild
+	if(!root || traversal == TEST_ORDER)
+		return NULL;
+		// Coverts the array into void pointer
+	nodePtr = (void **)nodeArray;
+		// Branches off if PRINT_LEVEL
+	if (traversal == PRINT_LEVEL) {
+			// Writes all the nodes into nodeArray
+		nodes = nodesSpecifiedLevelWithKey(level, key);
+			// Returns the nodeArray
+		return nodeArray;
+	}
+		// Writes all the nodes into nodeArray, via an the given traversal
+	switch(traversal) {
+		case PRE_ORDER:			nodesPreWithKey(root, key); break;
+		case IN_ORDER:			nodesInWithKey(root, key); break;
+		case POST_ORDER:		nodesPostWithKey(root, key); break;
+		case LEVEL_ORDER:		nodesLevelWithKey(key); break;
+		default:;
+	}
+		// Calculate the number of nodes put into the return array
+	nodes = (nodePtr - (void **)nodeArray);
+		// Returns the nodeArray
+	return nodeArray;
+}
+
+	/*		DATA	 */
+
+/*
+ * function_identifier: Returns an array of all rbtNodes that have the given data, in the given red-black tree, via a traversal (no TEST_ORDER)
+ * parameters: 			A pointer to a red-black tree
+ * return value:		An array of rbtNodes that have the given data (caller's responsibility to clear it)
+*/
+template <typename K, typename D>
+rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesWithData(D data, size_t &nodes, enum rbtraversal traversal, size_t level) const {
+		// Returns NULL if invaild
+	if(!root || traversal == TEST_ORDER)
+		return NULL;
+		// Branches off if PRINT_LEVEL
+	if (traversal == PRINT_LEVEL) {
+			// Allocates enough memory to hold all nodes in
+		rbtNode<K,D> **nodeArray = new rbtNode<K,D>*[1 << level];
+		nodePtr = (void **)nodeArray;
+			// Writes all the nodes into nodeArray
+		nodes = nodesSpecifiedLevelWithData(level, data);
+			// Checks if resize is needed, if so, resize array to match nodes copied
+		if (nodes < ((size_t)1 << level))
+			return resize_helper(nodeArray, nodes);
+			// Returns the nodeArray
+		return nodeArray;
+	}
+		// Allocates enough memory to hold all nodes in
+	rbtNode<K,D> **nodeArray = new rbtNode<K,D>*[size];
+	nodePtr = (void **)nodeArray;
+		// Writes all the nodes into nodeArray, via an the given traversal
+	switch(traversal) {
+		case PRE_ORDER:			nodesPreWithData(root, data); break;
+		case IN_ORDER:			nodesInWithData(root, data); break;
+		case POST_ORDER:		nodesPostWithData(root, data); break;
+		case LEVEL_ORDER:		nodesLevelWithData(data); break;
+		default:;
+	}
+		// Calculate the number of nodes put into the return array
+	nodes = (nodePtr - (void **)nodeArray);
+		// Checks if resize is needed, if so, resize array to match nodes copied
+	if (nodes < size)
+		return resize_helper(nodeArray, nodes);
+		// Returns the nodeArray
+	return nodeArray;
+}
+
+/*
+ * function_identifier: Returns an array of all rbtNodes that have the given data, in the given red-black tree, via a traversal (no TEST_ORDER)
+ *						It uses the array given and does not resize (your fault if the array doesn't have enough space)
+ * parameters: 			A pointer to a red-black tree
+ * return value:		An array of rbtNodes that have the given data (caller's responsibility to clear it)
+*/
+template <typename K, typename D>
+rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesWithData(rbtNode<K,D> **nodeArray, D data, size_t &nodes, enum rbtraversal traversal, size_t level) const {
+		// Returns NULL if invaild
+	if(!root || traversal == TEST_ORDER)
+		return NULL;
+		// Coverts the array into void pointer
+	nodePtr = (void **)nodeArray;
+		// Branches off if PRINT_LEVEL
+	if (traversal == PRINT_LEVEL) {
+			// Writes all the nodes into nodeArray
+		nodes = nodesSpecifiedLevelWithData(level, data);
+			// Returns the nodeArray
+		return nodeArray;
+	}
+		// Writes all the nodes into nodeArray, via an the given traversal
+	switch(traversal) {
+		case PRE_ORDER:			nodesPreWithData(root, data); break;
+		case IN_ORDER:			nodesInWithData(root, data); break;
+		case POST_ORDER:		nodesPostWithData(root, data); break;
+		case LEVEL_ORDER:		nodesLevelWithData(data); break;
+		default:;
+	}
+		// Calculate the number of nodes put into the return array
+	nodes = (nodePtr - (void **)nodeArray);
+		// Returns the nodeArray
+	return nodeArray;
+}
+
+	/*		DATAKEYS	 */
+
+/*
+ * function_identifier: Returns an array of all rbtNodes that have the given data and key, in the given red-black tree, via a traversal (no TEST_ORDER)
+ * parameters: 			A pointer to a red-black tree
+ * return value:		An array of rbtNodes that have the given data (caller's responsibility to clear it)
+*/
+template <typename K, typename D>
+rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesWithDataKey(D data, K key, size_t &nodes, enum rbtraversal traversal, size_t level) const {
+		// Returns NULL if invaild
+	if(traversal == TEST_ORDER)
+		return NULL;
+		// Branches off if PRINT_LEVEL
+	if (traversal == PRINT_LEVEL) {
+			// Allocates enough memory to hold all nodes in
+		rbtNode<K,D> **nodeArray = new rbtNode<K,D>*[1 << level];
+		nodePtr = (void **)nodeArray;
+			// Writes all the nodes into nodeArray
+		nodes = nodesSpecifiedLevelWithDataKey(level, data, key);
+			// Checks if resize is needed, if so, resize array to match nodes copied
+		if (nodes < ((size_t)1 << level))
+			return resize_helper(nodeArray, nodes);
+			// Returns the nodeArray
+		return nodeArray;
+	}
+		// Find the key to start traversing from
+	rbtNode<K,D> *curr;
+	if(!(curr = rbt_searchKey(key)))
+		return NULL;
+		// Allocates enough memory to hold all nodes in
+	rbtNode<K,D> **nodeArray = new rbtNode<K,D>*[size];
+	nodePtr = (void **)nodeArray;
+		// Writes all the nodes into nodeArray, via an the given traversal
+	switch(traversal) {
+		case PRE_ORDER:			nodesPreWithDataKey(curr, data, key); break;
+		case IN_ORDER:			nodesInWithDataKey(curr, data, key); break;
+		case POST_ORDER:		nodesPostWithDataKey(curr, data, key); break;
+		case LEVEL_ORDER:		nodesLevelWithDataKey(data, key); break;
+		default:;
+	}
+		// Calculate the number of nodes put into the return array
+	nodes = (nodePtr - (void **)nodeArray);
+		// Checks if resize is needed, if so, resize array to match nodes copied
+	if (nodes < size)
+		return resize_helper(nodeArray, nodes);
+		// Returns the nodeArray
+	return nodeArray;
+}
+
+/*
+ * function_identifier: Returns an array of all rbtNodes that have the given data and key, in the given red-black tree, via a traversal (no TEST_ORDER)
+ *						It uses the array given and does not resize (your fault if the array doesn't have enough space)
+ * parameters: 			A pointer to a red-black tree
+ * return value:		An array of rbtNodes that have the given data (caller's responsibility to clear it)
+*/
+template <typename K, typename D>
+rbtNode<K,D> **rbTree<K,D>::rbt_getAllNodesWithDataKey(rbtNode<K,D> **nodeArray, D data, K key, size_t &nodes, enum rbtraversal traversal, size_t level) const {
+		// Returns NULL if invaild
+	if(traversal == TEST_ORDER)
+		return NULL;
+		// Coverts the array into void pointer
+	nodePtr = (void **)nodeArray;
+		// Branches off if PRINT_LEVEL
+	if (traversal == PRINT_LEVEL) {
+			// Writes all the nodes into nodeArray
+		nodes = nodesSpecifiedLevelWithDataKey(level, data, key);
+			// Returns the nodeArray
+		return nodeArray;
+	}
+		// Find the key to start traversing from
+	rbtNode<K,D> *curr;
+	if(!(curr = rbt_searchKey(key)))
+		return NULL;
+		// Writes all the nodes into nodeArray, via an the given traversal
+	switch(traversal) {
+		case PRE_ORDER:			nodesPreWithDataKey(curr, data, key); break;
+		case IN_ORDER:			nodesInWithDataKey(curr, data, key); break;
+		case POST_ORDER:		nodesPostWithDataKey(curr, data, key); break;
+		case LEVEL_ORDER:		nodesLevelWithDataKey(data, key); break;
+		default:;
+	}
+		// Calculate the number of nodes put into the return array
+	nodes = (nodePtr - (void **)nodeArray);
+		// Returns the nodeArray
+	return nodeArray;
+}
 
 
 /*	============================================================================  */
@@ -791,17 +903,19 @@ void rbTree<K,D>::getAllKeys(rbtNode<K,D> *curr) const {
 
 /*
  * function_identifier: Returns all the keys in the red-black tree via an inorder traversal
- * parameters: 			N/A
+ * parameters: 			A keysArray (optional. If none provided, one is created)
  * return value:		An array of data values in void pointer format (caller's responsibility to clear it)
 */
 template <typename K, typename D>
-K *rbTree<K,D>::rbt_getAllKeys() const {
+K *rbTree<K,D>::rbt_getAllKeys(K *keysArray) const {
 		// Returns NULL if no nodes in tree
 	if(!size)
 		return NULL;
 
-		// Allocates memory to a new key array
-	K *keysArray = new K[size];
+		// If no keysArray provided, allocates memory to a new key array
+	if (!keysArray)
+		keysArray = new K[size];
+		// Aligns the basePtr to the keysArray
 	basePtr = (std::byte *)keysArray;
 
 		// Writes all keys into allocated memory
@@ -835,13 +949,15 @@ void rbTree<K,D>::getAllData(rbtNode<K,D> *curr) const {
  * return value:		An array of data values in void pointer format (caller's responsibility to clear it)
 */
 template <typename K, typename D>
-D *rbTree<K,D>::rbt_getAllData() const {
+D *rbTree<K,D>::rbt_getAllData(D *dataArray) const {
 		// Returns NULL if no nodes in tree
 	if(!size)
 		return NULL;
 
-		// Allocates memory to a new key array
-	D *dataArray = new D[size];
+		// If no keysArray provided, allocates memory to a new key array
+	if (!dataArray)
+		dataArray = new K[size];
+		// Aligns the basePtr to the dataArray
 	basePtr = (std::byte *)dataArray;
 
 		// Writes all data into allocated memory
