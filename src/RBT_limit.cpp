@@ -5,16 +5,330 @@
 #include	"RBT_traversal.h"
 #include	"RBT_sort.h"
 
+/*==============================================================================\
+ | Program:		Key-Data Red-Black Tree Implementation							|
+ | AUTHOR:		Xavier Alvarez 													|
+ | CREATE DATE:	15-January-2023 												|
+ | COPYRIGHT:	apache-2.0														|
+ | VERSION:		1.0																|
+ | DESCRIPTION:	A red-black semi-balanced binary search tree. Provides a		|
+ |				multitude of useful functions, including O(log(N)) lookup,		|
+ |				insert and delete operations.									|
+ \=============================================================================*/
+
 	/*	 GLOBAL VARIABLES	*/
+namespace {
 		// External From 'RBT_sort.cpp'
-template <typename K, typename D>
-extern inline bool(*fooPtr)(rbtNode<K,D> *, rbtNode<K,D> *);
+	template <typename K, typename D>
+	extern inline bool(*fooPtr)(rbtNode<K,D> *, rbtNode<K,D> *);
+}
 
 /*	============================================================================  */
 /* |                                                                            | */
 /* |                               TREE LIMITS                                  | */
 /* |                                                                            | */
 /*	============================================================================  */
+
+	/*		KEYS DATA	  */
+
+/*
+ * function_identifier: 
+ * parameters: 			
+ * return value:		N/A
+*/
+template <typename K, typename D>
+void rbTree<K,D>::rbt_clamp(K stK, K edK, D stD, D edD) {
+		// Ignores the trival case
+	if (stK > edK || stD > edD) {
+		rbt_clear();
+		return;
+	}
+
+		// Initializes the needed values
+	rbtNode<K,D> **rbtNodes, **IdxS, **IdxE;
+
+		// Gets the needed nodes and indexes
+	IdxS = rbtNodes = rbt_getAllNodes();
+	IdxE = rbtNodes + size - 1;
+
+		// Deletes all nodes less than start key
+	while(IdxE >= IdxS && (*IdxS)->key < stK)
+		delete *IdxS++;
+		// Deletes all nodes greater than end key
+	while(IdxE > IdxS && (*IdxE)->key > edK)
+		delete *IdxE--;
+
+		// Initializes extra variables
+	rbtNode<K,D> **IdxM = IdxS, **markS = IdxS;
+		// Deletes all nodes with data not in range
+	while(IdxE >= IdxS) {
+		if ((*IdxS)->data < stD || (*IdxS)->data > edD)
+			delete *IdxS++;
+		else
+			*IdxM++ = *IdxS++;
+	}
+		// Repositions the start and end indexes
+	IdxE = IdxM; IdxS = markS;
+
+		// Checks if there is any nodes left to process
+	if (IdxE != IdxS) {
+			// If there are remaining nodes, create a tree from them
+		treeifyShallow(IdxS - rbtNodes, IdxE - rbtNodes - 1, rbtNodes, &root);
+		size = IdxE - IdxS;
+		root->parent = NULL;
+	} else {
+			// If no remaining nodes, set root to NULL and size to 0
+		root = NULL; size = 0;
+	}
+
+		// Clears accessed node array
+	delete [] rbtNodes;
+}
+
+/*
+ * function_identifier: 
+ * parameters: 			
+ * return value:		N/A
+*/
+template <typename K, typename D>
+void rbTree<K,D>::rbt_clamp(size_t arrayLengthK, K *stK, K *edK, size_t arrayLengthD, D *stD, D *edD) {
+		// Ignores the trival case
+	if (!size)
+		return;
+
+		// Initializes the needed values
+	rbtNode<K,D> **rbtNodes, **IdxS, **IdxM, **IdxE;
+	K tempKey, *endPtrK; D *endPtrD; D *stDBase = stD, *edDBase = edD;
+
+		// Sorts the given ranges based on their start value
+	quickSortPair(stK, edK, 0, arrayLengthK - 1);
+	quickSortPair(stD, edD, 0, arrayLengthD - 1);
+
+		// Gets the needed nodes and indexes
+	IdxS = IdxM = rbtNodes = rbt_getAllNodes();
+	IdxE = rbtNodes + size;
+	endPtrK = stK + arrayLengthK; endPtrD = stD + arrayLengthD;
+
+		// Cycles through the entire array of accessed nodes
+	while(1) {
+start_exclude:
+			// Deletes all nodes before the current start key and after the previous end key
+		while((*IdxS)->key < *stK) {
+			delete *IdxS++;
+				// Stops when we run out of nodes
+			if (IdxS == IdxE)
+				goto finish_clamp;
+		}
+			// Saves all nodes after the current start key and before the current end key 
+		while((*IdxS)->key <= *edK) {
+				// Moves up in the data array if current node is outside of it
+			while(stD < endPtrD && (*IdxS)->data > *edD) {
+				stD++; edD++;
+					// If we reached the end of the data array, then all future nodes (with
+					// the current key) are outside of the clamp. Delete them
+				if (stD == endPtrD) {
+						// Saves the current node's key for comparison
+					tempKey = (*IdxS)->key;
+					while(true) {
+							// Deletes the current node and moves forward in the array
+						delete *IdxS++;
+							// Stops when we run out of nodes
+						if (IdxS == IdxE)
+							goto finish_clamp;
+							// Escapes when we find a node with a different key
+						if (tempKey != (*IdxS)->key)
+							break;
+					}
+
+						// Reset base data range indexes and resume normal pratice
+					stD = stDBase; edD = edDBase;
+					goto start_exclude;
+				}
+			}
+				// Saves the current node's key for comparison
+			tempKey = (*IdxS)->key;
+				// Checks if to save or delete the current node
+			if ((*IdxS)->data < *stD)
+				delete *IdxS++;
+			else
+				*IdxM++ = *IdxS++;
+				// Stops when we run out of nodes
+			if (IdxS == IdxE)
+				goto finish_clamp;
+				// Reset base data range indexes when we find a node with a different key
+			if (tempKey != (*IdxS)->key) {
+				stD = stDBase; edD = edDBase;
+			}
+		}
+			// Moves forward in the start and end key arrays
+		stK++; edK++;
+			// Stops when we run out of ranges to process
+		if (endPtrK == stK)
+			break;
+	}
+		// Deletes any extra nodes
+	while(IdxS != IdxE)
+		delete *IdxS++;
+
+finish_clamp:
+		// Calculates the size of the array of non-deleted nodes
+	size = IdxM - rbtNodes;
+
+		// Checks if there is any nodes left to process
+	if (size) {
+			// If there are remaining nodes, create a tree from them
+		treeifyShallow(0, size - 1, rbtNodes, &root);
+		root->parent = NULL;
+	} else
+			// If no remaining nodes, set root to NULL
+		root = NULL;
+
+		// Clears accessed node array
+	delete [] rbtNodes;
+}
+
+/*
+ * function_identifier: 
+ * parameters: 			
+ * return value:		N/A
+*/
+template <typename K, typename D>
+void rbTree<K,D>::rbt_exclude(K stK, K edK, D stD, D edD) {
+		// Ignores the trival case
+	if (stK > edK)
+		return;
+
+		// Initializes the needed values
+	rbtNode<K,D> **rbtNodes, **IdxS, **IdxM, **IdxE;
+
+		// Gets the needed nodes and indexes
+	IdxS = IdxM = rbtNodes = rbt_getAllNodes();
+	IdxE = rbtNodes + size;
+
+	while(IdxS < IdxE && (*IdxS)->key < stK) {
+		if ((*IdxS)->data < stD || (*IdxS)->data > edD)
+			*IdxM++ = *IdxS++;
+		else
+			delete *IdxS++;
+	}
+	while(IdxS < IdxE && (*IdxS)->key <= edK)
+		delete *IdxS++;
+	while(IdxS < IdxE) {
+		if ((*IdxS)->data < stD || (*IdxS)->data > edD)
+			*IdxM++ = *IdxS++;
+		else
+			delete *IdxS++;
+	}
+
+		// Calculates the size of the array of non-deleted nodes
+	size = IdxM - rbtNodes;
+
+		// Checks if there is any nodes left to process
+	if (size) {
+			// If there are remaining nodes, create a tree from them
+		treeifyShallow(0, size - 1, rbtNodes, &root);
+		root->parent = NULL;
+	} else
+		// If no remaining nodes, set root to NULL
+		root = NULL;
+
+		// Clears accessed node array
+	delete [] rbtNodes;
+}
+
+/*
+ * function_identifier: 
+ * parameters: 			
+ * return value:		N/A
+*/
+template <typename K, typename D>
+void rbTree<K,D>::rbt_exclude(size_t arrayLengthK, K *stK, K *edK, size_t arrayLengthD, D *stD, D *edD) {
+		// Ignores the trival case
+	if (!size)
+		return;
+
+		// Initializes the needed values
+	rbtNode<K,D> **rbtNodes, **IdxS, **IdxM, **IdxE;
+	K tempKey, *endPtrK; D *endPtrD; D *stDBase = stD, *edDBase = edD;
+
+		// Sorts the given ranges based on their start value
+	quickSortPair(stK, edK, 0, arrayLengthK - 1);
+	quickSortPair(stD, edD, 0, arrayLengthD - 1);
+
+		// Gets the needed nodes and indexes
+	IdxS = IdxM = rbtNodes = rbt_getAllNodes();
+	IdxE = rbtNodes + size;
+	endPtrK = stK + arrayLengthK; endPtrD = stD + arrayLengthD;
+
+		// Cycles through the entire array of accessed nodes
+	while(1) {
+start_exclude:
+			// Saves all nodes before the current start key and after the previous end key
+		while(endPtrK == stK || (*IdxS)->key < *stK) {
+				// Moves up in the data array if current node is outside of it
+			while(stD < endPtrD && (*IdxS)->data > *edD) {
+				stD++; edD++;
+					// If we reached the end of the data array, then all future nodes (with
+					// the current key) are outside of the clamp. Delete them
+				if (stD == endPtrD) {
+					while(true) {
+						*IdxM++ = *IdxS++;
+							// Stops when we run out of nodes
+						if (IdxS == IdxE)
+							goto finish_exclude;
+							// Escapes when we find a node with a different key
+						if ((*(IdxS - 1))->key != (*IdxS)->key)
+							break;
+					}
+
+						// Reset base data range indexes and resume normal pratice
+					stD = stDBase; edD = edDBase;
+					goto start_exclude;
+				}
+			}
+				// Saves the current node's key for comparison
+			tempKey = (*IdxS)->key;
+				// Checks if to save or delete the current node
+			if ((*IdxS)->data >= *stD)
+				delete *IdxS++;
+			else
+				*IdxM++ = *IdxS++;
+				// Stops when we run out of nodes
+			if (IdxS == IdxE)
+				goto finish_exclude;
+				// Reset base data range indexes when we find a node with a different key
+			if (tempKey != (*IdxS)->key) {
+				stD = stDBase; edD = edDBase;
+			}
+		}
+			// Deletes all nodes after the current start key and before the current end key
+		while((*IdxS)->key <= *edK) {
+			delete *IdxS++;
+				// Stops when we run out of nodes
+			if (IdxS == IdxE)
+				goto finish_exclude;
+		}
+			// Moves forward in the start and end key arrays
+		stK++; edK++;
+	}
+finish_exclude:
+		// Calculates the size of the array of non-deleted nodes
+	size = IdxM - rbtNodes;
+
+		// Checks if there is any nodes left to process
+	if (size) {
+			// If there are remaining nodes, create a tree from them
+		treeifyShallow(0, size - 1, rbtNodes, &root);
+		root->parent = NULL;
+	} else
+			// If no remaining nodes, set root to NULL
+		root = NULL;
+
+		// Clears accessed node array
+	delete [] rbtNodes;
+}
+
+	/*		KEYS	  */
 
 /*
  * function_identifier: Limits all nodes, in the red-black tree, to have a key between the two keys provided
@@ -115,129 +429,6 @@ finish_clamp_key:
 
 		// Checks if there is any nodes left to process
 	if (size) {
-			// If there are remaining nodes, create a tree from them
-		treeifyShallow(0, size - 1, rbtNodes, &root);
-		root->parent = NULL;
-	} else
-			// If no remaining nodes, set root to NULL
-		root = NULL;
-
-		// Clears accessed node array
-	delete [] rbtNodes;
-}
-
-/*
- * function_identifier: Limits all nodes, in the red-black tree, to have a data between the two data provided
- *						Deletes extras
- * parameters: 			The start and end data of a range
- * return value:		N/A
-*/
-template <typename K, typename D>
-void rbTree<K,D>::rbt_clampData(D st, D ed) {
-		// Ignores the trival case
-	if (st > ed) {
-		rbt_clear();
-		return;
-	}
-
-		// Initializes the needed values
-	rbtNode<K,D> **IdxS, **IdxM, **IdxE;
-
-		// Gets the needed nodes and indexes
-	IdxS = IdxM = rbt_getAllNodes();
-	IdxE = IdxS + size - 1;
-
-		// Cycles through all nodes
-			// Saves nodes within range, deletes all nodes that are outside
-	while(IdxE >= IdxS)
-			// Deletes nodes outside range
-		if ((*IdxS)->key < st || (*IdxS)->key > ed)
-			delete *IdxS++;
-		else
-			// Saves node at next vaild spot
-			*IdxM++ = *IdxS++;
-
-		// Resets IdxS to start of node array and calculates the size
-	IdxS -= size;
-	size = IdxM - IdxS;
-
-		// Checks if there is any nodes left to process
-	if (size) {
-			// If there are remaining nodes, create a tree from them
-		treeifyShallow(0, size - 1, IdxS, &root);
-		root->parent = NULL;
-	} else
-			// If no remaining nodes, set root to NULL
-		root = NULL;
-
-		// Clears accessed node array
-	delete [] IdxS;
-}
-
-/*
- * function_identifier: Limits all nodes, in the red-black tree, to have a data between the data ranges provided
- *						Deletes extras
- * parameters: 			The length of the arrays, an array of start data, and an array of end data
- * return value:		N/A
-*/
-template <typename K, typename D>
-void rbTree<K,D>::rbt_clampData(size_t arrayLength, D *st, D *ed) {
-		// Ignores the trival case
-	if (!size)
-		return;
-
-		// Initializes the needed values
-	rbtNode<K,D> **rbtNodes, **IdxS, **IdxM, **IdxE;
-	D *endPtr;
-
-		// Sorts the given data ranges based on their start data
-	quickSortPair(st, ed, 0, arrayLength - 1);
-
-		// Gets the needed nodes and indexes
-	IdxS = IdxM = rbtNodes = rbt_getAllNodes();
-	IdxE = rbtNodes + size;
-	endPtr = st + arrayLength;
-
-		// Sorts the nodes
-	fooPtr<K,D> = dataCompair;
-	mergeSortCallerBase(rbtNodes, 0, size - 1);
-
-		// Cycles through the entire array of accessed nodes
-	while(1) {
-			// Deletes all nodes before the current start data and after the previous end data
-		while((*IdxS)->data < *st) {
-			delete *IdxS++;
-				// Stops when we run out of nodes
-			if (IdxS == IdxE)
-				goto finish_clamp_data;
-		}
-			// Saves all nodes after the current start data and before the current end data 
-		while((*IdxS)->data <= *ed) {
-			*IdxM++ = *IdxS++;
-				// Stops when we run out of nodes
-			if (IdxS == IdxE)
-				goto finish_clamp_data;
-		}
-			// Moves forward in the start and end data arrays
-		st++; ed++;
-			// Stops when we run out of ranges to process
-		if (endPtr == st)
-			break;
-	}
-		// Deletes any extra nodes
-	while(IdxS != IdxE)
-		delete *IdxS++;
-
-finish_clamp_data:
-		// Calculates the size of the array of non-deleted nodes
-	size = IdxM - rbtNodes;
-
-		// Checks if there is any nodes left to process
-	if (size) {
-			// Sorts the nodes
-		fooPtr<K,D> = keyDataCompair;
-		mergeSortCallerBase(rbtNodes, 0, size - 1);
-		
 			// If there are remaining nodes, create a tree from them
 		treeifyShallow(0, size - 1, rbtNodes, &root);
 		root->parent = NULL;
@@ -373,127 +564,6 @@ finish_exclude_key:
 }
 
 /*
- * function_identifier: Limits all nodes, in the red-black tree, to have a key outside the range of the two data provided
- *						Deletes extras
- * parameters: 			The start and end data of a range
- * return value:		N/A
-*/
-template <typename K, typename D>
-void rbTree<K,D>::rbt_excludeData(D st, D ed) {
-		// Ignores the trival case
-	if (st > ed)
-		return;
-
-		// Initializes the needed values
-	rbtNode<K,D> **IdxS, **IdxM, **IdxE;
-
-		// Gets the needed nodes and indexes
-	IdxS = IdxM = rbt_getAllNodes();
-	IdxE = IdxS + size - 1;
-
-		// Cycles through all nodes
-			// Saves nodes outside range, deletes all nodes that are inside
-	while(IdxE >= IdxS)
-			// Saves node at next vaild spot if outside range
-		if ((*IdxS)->key < st || (*IdxS)->key > ed)
-			*IdxM++ = *IdxS++;
-		else
-			// Deletes nodes inside range
-			delete *IdxS++;
-
-		// Resets IdxS to start of node array and calculates the size
-	IdxS -= size;
-	size = IdxM - IdxS;
-
-		// Checks if there is any nodes left to process
-	if (size) {
-			// If there are remaining nodes, create a tree from them
-		treeifyShallow(0, size - 1, IdxS, &root);
-		root->parent = NULL;
-	} else
-			// If no remaining nodes, set root to NULL
-		root = NULL;
-
-		// Clears accessed node array
-	delete [] IdxS;
-}
-
-/*
- * function_identifier: Limits all nodes, in the red-black tree, to have a data outside the ranges provided
- *						Deletes extras
- * parameters: 			The length of the arrays, an array of start data, and an array of end data
- * return value:		N/A
-*/
-template <typename K, typename D>
-void rbTree<K,D>::rbt_excludeData(size_t arrayLength, D *st, D *ed) {
-		// Ignores the trival case
-	if (!size)
-		return;
-
-		// Initializes the needed values
-	rbtNode<K,D> **rbtNodes, **IdxS, **IdxM, **IdxE;
-	D *endPtr;
-
-		// Sorts the given data ranges based on their start data
-	quickSortPair(st, ed, 0, arrayLength - 1);
-
-		// Gets the needed nodes and indexes
-	IdxS = IdxM = rbtNodes = rbt_getAllNodes();
-	IdxE = rbtNodes + size;
-	endPtr = st + arrayLength;
-
-		// Sorts the nodes
-	fooPtr<K,D> = dataCompair;
-	mergeSortCallerBase(rbtNodes, 0, size - 1);
-
-		// Cycles through the entire array of accessed nodes
-	while(1) {
-			// Saves all nodes before the current start data and after the previous end data
-		while((*IdxS)->data < *st) {
-			*IdxM++ = *IdxS++;
-				// Stops when we run out of nodes
-			if (IdxS == IdxE)
-				goto finish_exclude_data;
-		}
-			// Deletes all nodes after the current start data and before the current end data
-		while((*IdxS)->data <= *ed) {
-			delete *IdxS++;
-				// Stops when we run out of nodes
-			if (IdxS == IdxE)
-				goto finish_exclude_data;
-		}
-			// Moves forward in the start and end data arrays
-		st++; ed++;
-			// Stops when we run out of ranges to process
-		if (endPtr == st)
-			break;
-	}
-		// Deletes any extra nodes
-	while(IdxS != IdxE)
-		*IdxM++ = *IdxS++;
-
-finish_exclude_data:
-		// Calculates the size of the array of non-deleted nodes
-	size = IdxM - rbtNodes;
-
-		// Checks if there is any nodes left to process
-	if (size) {
-			// Sorts the nodes
-		fooPtr<K,D> = keyDataCompair;
-		mergeSortCallerBase(rbtNodes, 0, size - 1);
-
-			// If there are remaining nodes, create a tree from them
-		treeifyShallow(0, size - 1, rbtNodes, &root);
-		root->parent = NULL;
-	} else
-			// If no remaining nodes, set root to NULL
-		root = NULL;
-
-		// Clears accessed node array
-	delete [] rbtNodes;
-}
-
-/*
  * function_identifier: Limits all nodes, in the red-black tree, to have a key less than or equal to the key provided
  *						Deletes extras
  * parameters: 			A key limit
@@ -561,92 +631,6 @@ void rbTree<K,D>::rbt_lowerLimitKey(K lim) {
 			// If no remaining nodes, set root to NULL and size to 0
 		root = NULL; size = 0;
 	}
-
-		// Clears accessed node array
-	delete [] rbtNodes;
-}
-
-/*
- * function_identifier: Limits all nodes, in the red-black tree, to have a data less than or equal to the data provided
- *						Deletes extras
- * parameters: 			A data limit
- * return value:		N/A
-*/
-template <typename K, typename D>
-void rbTree<K,D>::rbt_upperLimitData(D lim) {
-		// Ignores the trival case
-	if (!size)
-		return;
-
-		// Initializes the needed values
-	rbtNode<K,D> **rbtNodes, **IdxS, **IdxM, **IdxE;
-
-		// Gets the needed nodes and indexes
-	IdxS = IdxM = rbtNodes = rbt_getAllNodes();
-	IdxE = rbtNodes + size;
-
-		// Deletes all nodes with a greater data
-	do {
-		if ((*IdxS)->data <= lim)
-			*IdxM++ = *IdxS;
-		else
-			delete *IdxS;
-	} while(++IdxS != IdxE);
-
-		// Calculates the size of the new tree
-	size = IdxM - rbtNodes;
-
-		// Checks if there is any nodes left to process
-	if (size) {
-			// If there are remaining nodes, create a tree from them
-		treeifyShallow(0, size - 1, rbtNodes, &root);
-		root->parent = NULL;
-	} else
-			// If no remaining nodes, set root to NULL
-		root = NULL;
-
-		// Clears accessed node array
-	delete [] rbtNodes;
-}
-
-/*
- * function_identifier: Limits all nodes, in the red-black tree, to have a data greater than or equal to the data provided
- *						Deletes extras
- * parameters: 			A data limit
- * return value:		N/A
-*/
-template <typename K, typename D>
-void rbTree<K,D>::rbt_lowerLimitData(D lim) {
-		// Ignores the trival case
-	if (!size)
-		return;
-
-		// Initializes the needed values
-	rbtNode<K,D> **rbtNodes, **IdxS, **IdxM, **IdxE;
-
-		// Gets the needed nodes and indexes
-	IdxS = IdxM = rbtNodes = rbt_getAllNodes();
-	IdxE = rbtNodes + size;
-
-		// Deletes all nodes with a smaller data
-	do {
-		if ((*IdxS)->data >= lim)
-			*IdxM++ = *IdxS;
-		else
-			delete *IdxS;
-	} while(++IdxS != IdxE);
-
-		// Calculates the size of the new tree
-	size = IdxM - rbtNodes;
-
-		// Checks if there is any nodes left to process
-	if (size) {
-			// If there are remaining nodes, create a tree from them
-		treeifyShallow(0, size - 1, rbtNodes, &root);
-		root->parent = NULL;
-	} else
-			// If no remaining nodes, set root to NULL
-		root = NULL;
 
 		// Clears accessed node array
 	delete [] rbtNodes;
@@ -836,6 +820,338 @@ void rbTree<K,D>::rbt_removeLowestKey(size_t val) {
 
 		// Clears accessed node array
 	delete [] IdxE;
+}
+
+	/*		DATA	  */
+
+/*
+ * function_identifier: Limits all nodes, in the red-black tree, to have a data between the two data provided
+ *						Deletes extras
+ * parameters: 			The start and end data of a range
+ * return value:		N/A
+*/
+template <typename K, typename D>
+void rbTree<K,D>::rbt_clampData(D st, D ed) {
+		// Ignores the trival case
+	if (st > ed) {
+		rbt_clear();
+		return;
+	}
+
+		// Initializes the needed values
+	rbtNode<K,D> **IdxS, **IdxM, **IdxE;
+
+		// Gets the needed nodes and indexes
+	IdxS = IdxM = rbt_getAllNodes();
+	IdxE = IdxS + size - 1;
+
+		// Cycles through all nodes
+			// Saves nodes within range, deletes all nodes that are outside
+	while(IdxE >= IdxS)
+			// Deletes nodes outside range
+		if ((*IdxS)->data < st || (*IdxS)->data > ed)
+			delete *IdxS++;
+		else
+			// Saves node at next vaild spot
+			*IdxM++ = *IdxS++;
+
+		// Resets IdxS to start of node array and calculates the size
+	IdxS -= size;
+	size = IdxM - IdxS;
+
+		// Checks if there is any nodes left to process
+	if (size) {
+			// If there are remaining nodes, create a tree from them
+		treeifyShallow(0, size - 1, IdxS, &root);
+		root->parent = NULL;
+	} else
+			// If no remaining nodes, set root to NULL
+		root = NULL;
+
+		// Clears accessed node array
+	delete [] IdxS;
+}
+
+/*
+ * function_identifier: Limits all nodes, in the red-black tree, to have a data between the data ranges provided
+ *						Deletes extras
+ * parameters: 			The length of the arrays, an array of start data, and an array of end data
+ * return value:		N/A
+*/
+template <typename K, typename D>
+void rbTree<K,D>::rbt_clampData(size_t arrayLength, D *st, D *ed) {
+		// Ignores the trival case
+	if (!size)
+		return;
+
+		// Initializes the needed values
+	rbtNode<K,D> **rbtNodes, **IdxS, **IdxM, **IdxE;
+	D *endPtr;
+
+		// Sorts the given data ranges based on their start data
+	quickSortPair(st, ed, 0, arrayLength - 1);
+
+		// Gets the needed nodes and indexes
+	IdxS = IdxM = rbtNodes = rbt_getAllNodes();
+	IdxE = rbtNodes + size;
+	endPtr = st + arrayLength;
+
+		// Sorts the nodes
+	fooPtr<K,D> = dataCompair;
+	mergeSortCallerBase(rbtNodes, 0, size - 1);
+
+		// Cycles through the entire array of accessed nodes
+	while(1) {
+			// Deletes all nodes before the current start data and after the previous end data
+		while((*IdxS)->data < *st) {
+			delete *IdxS++;
+				// Stops when we run out of nodes
+			if (IdxS == IdxE)
+				goto finish_clamp_data;
+		}
+			// Saves all nodes after the current start data and before the current end data 
+		while((*IdxS)->data <= *ed) {
+			*IdxM++ = *IdxS++;
+				// Stops when we run out of nodes
+			if (IdxS == IdxE)
+				goto finish_clamp_data;
+		}
+			// Moves forward in the start and end data arrays
+		st++; ed++;
+			// Stops when we run out of ranges to process
+		if (endPtr == st)
+			break;
+	}
+		// Deletes any extra nodes
+	while(IdxS != IdxE)
+		delete *IdxS++;
+
+finish_clamp_data:
+		// Calculates the size of the array of non-deleted nodes
+	size = IdxM - rbtNodes;
+
+		// Checks if there is any nodes left to process
+	if (size) {
+			// Sorts the nodes
+		fooPtr<K,D> = keyDataCompair;
+		mergeSortCallerBase(rbtNodes, 0, size - 1);
+		
+			// If there are remaining nodes, create a tree from them
+		treeifyShallow(0, size - 1, rbtNodes, &root);
+		root->parent = NULL;
+	} else
+			// If no remaining nodes, set root to NULL
+		root = NULL;
+
+		// Clears accessed node array
+	delete [] rbtNodes;
+}
+
+/*
+ * function_identifier: Limits all nodes, in the red-black tree, to have a key outside the range of the two data provided
+ *						Deletes extras
+ * parameters: 			The start and end data of a range
+ * return value:		N/A
+*/
+template <typename K, typename D>
+void rbTree<K,D>::rbt_excludeData(D st, D ed) {
+		// Ignores the trival case
+	if (st > ed)
+		return;
+
+		// Initializes the needed values
+	rbtNode<K,D> **IdxS, **IdxM, **IdxE;
+
+		// Gets the needed nodes and indexes
+	IdxS = IdxM = rbt_getAllNodes();
+	IdxE = IdxS + size - 1;
+
+		// Cycles through all nodes
+			// Saves nodes outside range, deletes all nodes that are inside
+	while(IdxE >= IdxS)
+			// Saves node at next vaild spot if outside range
+		if ((*IdxS)->key < st || (*IdxS)->key > ed)
+			*IdxM++ = *IdxS++;
+		else
+			// Deletes nodes inside range
+			delete *IdxS++;
+
+		// Resets IdxS to start of node array and calculates the size
+	IdxS -= size;
+	size = IdxM - IdxS;
+
+		// Checks if there is any nodes left to process
+	if (size) {
+			// If there are remaining nodes, create a tree from them
+		treeifyShallow(0, size - 1, IdxS, &root);
+		root->parent = NULL;
+	} else
+			// If no remaining nodes, set root to NULL
+		root = NULL;
+
+		// Clears accessed node array
+	delete [] IdxS;
+}
+
+/*
+ * function_identifier: Limits all nodes, in the red-black tree, to have a data outside the ranges provided
+ *						Deletes extras
+ * parameters: 			The length of the arrays, an array of start data, and an array of end data
+ * return value:		N/A
+*/
+template <typename K, typename D>
+void rbTree<K,D>::rbt_excludeData(size_t arrayLength, D *st, D *ed) {
+		// Ignores the trival case
+	if (!size)
+		return;
+
+		// Initializes the needed values
+	rbtNode<K,D> **rbtNodes, **IdxS, **IdxM, **IdxE;
+	D *endPtr;
+
+		// Sorts the given data ranges based on their start data
+	quickSortPair(st, ed, 0, arrayLength - 1);
+
+		// Gets the needed nodes and indexes
+	IdxS = IdxM = rbtNodes = rbt_getAllNodes();
+	IdxE = rbtNodes + size;
+	endPtr = st + arrayLength;
+
+		// Sorts the nodes
+	fooPtr<K,D> = dataCompair;
+	mergeSortCallerBase(rbtNodes, 0, size - 1);
+
+		// Cycles through the entire array of accessed nodes
+	while(1) {
+			// Saves all nodes before the current start data and after the previous end data
+		while((*IdxS)->data < *st) {
+			*IdxM++ = *IdxS++;
+				// Stops when we run out of nodes
+			if (IdxS == IdxE)
+				goto finish_exclude_data;
+		}
+			// Deletes all nodes after the current start data and before the current end data
+		while((*IdxS)->data <= *ed) {
+			delete *IdxS++;
+				// Stops when we run out of nodes
+			if (IdxS == IdxE)
+				goto finish_exclude_data;
+		}
+			// Moves forward in the start and end data arrays
+		st++; ed++;
+			// Stops when we run out of ranges to process
+		if (endPtr == st)
+			break;
+	}
+		// Deletes any extra nodes
+	while(IdxS != IdxE)
+		*IdxM++ = *IdxS++;
+
+finish_exclude_data:
+		// Calculates the size of the array of non-deleted nodes
+	size = IdxM - rbtNodes;
+
+		// Checks if there is any nodes left to process
+	if (size) {
+			// Sorts the nodes
+		fooPtr<K,D> = keyDataCompair;
+		mergeSortCallerBase(rbtNodes, 0, size - 1);
+
+			// If there are remaining nodes, create a tree from them
+		treeifyShallow(0, size - 1, rbtNodes, &root);
+		root->parent = NULL;
+	} else
+			// If no remaining nodes, set root to NULL
+		root = NULL;
+
+		// Clears accessed node array
+	delete [] rbtNodes;
+}
+
+/*
+ * function_identifier: Limits all nodes, in the red-black tree, to have a data less than or equal to the data provided
+ *						Deletes extras
+ * parameters: 			A data limit
+ * return value:		N/A
+*/
+template <typename K, typename D>
+void rbTree<K,D>::rbt_upperLimitData(D lim) {
+		// Ignores the trival case
+	if (!size)
+		return;
+
+		// Initializes the needed values
+	rbtNode<K,D> **rbtNodes, **IdxS, **IdxM, **IdxE;
+
+		// Gets the needed nodes and indexes
+	IdxS = IdxM = rbtNodes = rbt_getAllNodes();
+	IdxE = rbtNodes + size;
+
+		// Deletes all nodes with a greater data
+	do {
+		if ((*IdxS)->data <= lim)
+			*IdxM++ = *IdxS;
+		else
+			delete *IdxS;
+	} while(++IdxS != IdxE);
+
+		// Calculates the size of the new tree
+	size = IdxM - rbtNodes;
+
+		// Checks if there is any nodes left to process
+	if (size) {
+			// If there are remaining nodes, create a tree from them
+		treeifyShallow(0, size - 1, rbtNodes, &root);
+		root->parent = NULL;
+	} else
+			// If no remaining nodes, set root to NULL
+		root = NULL;
+
+		// Clears accessed node array
+	delete [] rbtNodes;
+}
+
+/*
+ * function_identifier: Limits all nodes, in the red-black tree, to have a data greater than or equal to the data provided
+ *						Deletes extras
+ * parameters: 			A data limit
+ * return value:		N/A
+*/
+template <typename K, typename D>
+void rbTree<K,D>::rbt_lowerLimitData(D lim) {
+		// Ignores the trival case
+	if (!size)
+		return;
+
+		// Initializes the needed values
+	rbtNode<K,D> **rbtNodes, **IdxS, **IdxM, **IdxE;
+
+		// Gets the needed nodes and indexes
+	IdxS = IdxM = rbtNodes = rbt_getAllNodes();
+	IdxE = rbtNodes + size;
+
+		// Deletes all nodes with a smaller data
+	do {
+		if ((*IdxS)->data >= lim)
+			*IdxM++ = *IdxS;
+		else
+			delete *IdxS;
+	} while(++IdxS != IdxE);
+
+		// Calculates the size of the new tree
+	size = IdxM - rbtNodes;
+
+		// Checks if there is any nodes left to process
+	if (size) {
+			// If there are remaining nodes, create a tree from them
+		treeifyShallow(0, size - 1, rbtNodes, &root);
+		root->parent = NULL;
+	} else
+			// If no remaining nodes, set root to NULL
+		root = NULL;
+
+		// Clears accessed node array
+	delete [] rbtNodes;
 }
 
 /*

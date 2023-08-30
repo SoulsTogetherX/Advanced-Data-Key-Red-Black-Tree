@@ -2,10 +2,28 @@
 #define _rbt_ACCESS
 #include	"RBT_main.h"
 #include	"RBT_access.h"
+#include	"RBT_sort.h"
 #include	<stdexcept>
 
+/*==============================================================================\
+ | Program:		Key-Data Red-Black Tree Implementation							|
+ | AUTHOR:		Xavier Alvarez 													|
+ | CREATE DATE:	15-January-2023 												|
+ | COPYRIGHT:	apache-2.0														|
+ | VERSION:		1.0																|
+ | DESCRIPTION:	A red-black semi-balanced binary search tree. Provides a		|
+ |				multitude of useful functions, including O(log(N)) lookup,		|
+ |				insert and delete operations.									|
+ \=============================================================================*/
+
 	/*	 GLOBAL VARIABLES	*/
-inline size_t *widths;
+namespace {
+	inline size_t *widths;
+
+		// External From 'RBT_sort.cpp'
+	template <typename K, typename D>
+	extern inline bool(*fooPtr)(rbtNode<K,D> *, rbtNode<K,D> *);
+}
 
 /*	============================================================================  */
 /* |                                                                            | */
@@ -580,6 +598,202 @@ rbtNode<K,D> *rbTree<K,D>::rbt_search(K key, D data) const {
 template <typename K, typename D>
 rbtNode<K,D> *rbTree<K,D>::rbt_search(rbtNode<K,D> *target) const {
 	return rbt_search(target->key, target->data);
+}
+
+/*
+ * function_identifier: Finds all nodes with the max key and then returns the node, among those, with
+ *						the max data
+ * parameters: 			N/A
+ * return value:		An rbtNode pointer
+*/
+template <typename K, typename D>
+rbtNode<K,D> *rbTree<K,D>::rbt_maxKey_maxData() const {
+	return rbt_maxKey();
+}
+
+/*
+ * function_identifier: Checks all child of the current node, with the same provided key, and
+ *						finds the first one with the min data value among them (called by rbt_maxKey_minData())
+ * parameters: 			N/A
+ * return value:		An rbtNode pointer
+*/
+template <typename K, typename D>
+rbtNode<K,D> *rbTree<K,D>::key_minData(rbtNode<K,D> *curr, K key) const {
+	rbtNode<K,D> *curr2 = curr, *temp;
+
+	if (curr->left){
+		temp = key_minData(curr->left, key);
+		if (temp->key == key && curr2->data > temp->data)
+			curr2 = temp;
+	}
+	if (curr->right) {
+		temp = key_minData(curr->right, key);
+		if (temp->key == key && curr2->data > temp->data)
+			curr2 = temp;
+	}
+
+	return curr2;
+}
+
+/*
+ * function_identifier: Finds all nodes with the max key and then returns the node, among those, with
+ *						the min data
+ * parameters: 			N/A
+ * return value:		An rbtNode pointer
+*/
+template <typename K, typename D>
+rbtNode<K,D> *rbTree<K,D>::rbt_maxKey_minData() const {
+	rbtNode<K,D> *curr = root;
+
+	while(curr->right)
+		curr = curr->right;
+	while(curr->parent && curr->parent->key == curr->key)
+		curr = curr->parent;
+	return key_minData(curr, curr->key);
+}
+
+/*
+ * function_identifier: Checks all child of the current node, with the same provided key, and
+ *						finds the first one with the max data value among them (called by rbt_minKey_maxData())
+ * parameters: 			N/A
+ * return value:		An rbtNode pointer
+*/
+template <typename K, typename D>
+rbtNode<K,D> *rbTree<K,D>::key_maxData(rbtNode<K,D> *curr, K key) const {
+	rbtNode<K,D> *curr2 = curr, *temp;
+
+	if (curr->left){
+		temp = key_maxData(curr->left, key);
+		if (temp->key == key && curr2->data < temp->data)
+			curr2 = temp;
+	}
+	if (curr->right) {
+		temp = key_maxData(curr->right, key);
+		if (temp->key == key && curr2->data < temp->data)
+			curr2 = temp;
+	}
+
+	return curr2;
+}
+
+/*
+ * function_identifier: Finds all nodes with the min key and then returns the node, among those, with
+ *						the max data
+ * parameters: 			N/A
+ * return value:		An rbtNode pointer
+*/
+template <typename K, typename D>
+rbtNode<K,D> *rbTree<K,D>::rbt_minKey_maxData() const {
+	rbtNode<K,D> *curr = root;
+
+	while(curr->left)
+		curr = curr->left;
+	while(curr->parent && curr->parent->key == curr->key)
+		curr = curr->parent;
+	return key_maxData(curr, curr->key);
+}
+
+/*
+ * function_identifier: Finds all nodes with the min key and then returns the node, among those, with
+ *						the min data
+ * parameters: 			N/A
+ * return value:		An rbtNode pointer
+*/
+template <typename K, typename D>
+rbtNode<K,D> *rbTree<K,D>::rbt_minKey_minData() const {
+	return rbt_minKey();
+}
+
+/*
+ * function_identifier: Finds all nodes with the max data and then returns the node, among those, with
+ *						the max key
+ * parameters: 			N/A
+ * return value:		An rbtNode pointer
+*/
+template <typename K, typename D>
+rbtNode<K,D> *rbTree<K,D>::rbt_maxData_maxKey() const {
+	rbtNode<K,D> *curr, **rbtNodes = rbt_getAllNodes();
+	
+	fooPtr<K,D> = dataKeyCompair;
+	mergeSortCallerBase(rbtNodes, 0, size - 1);
+	curr = rbtNodes[size - 1];
+
+	delete [] rbtNodes;
+
+	return curr;
+}
+
+/*
+ * function_identifier: Finds all nodes with the min data and then returns the node, among those, with
+ *						the max key
+ * parameters: 			N/A
+ * return value:		An rbtNode pointer
+*/
+template <typename K, typename D>
+rbtNode<K,D> *rbTree<K,D>::rbt_minData_maxKey() const {
+	rbtNode<K,D> *curr, **rbtNodes = rbt_getAllNodes();
+	
+	fooPtr<K,D> = dataKeyCompair;
+	mergeSortCallerBase(rbtNodes, 0, size - 1);
+
+	curr = rbtNodes[0];
+	for(size_t idx = 0; idx <= size; idx++)
+		if (idx == size)
+			curr = rbtNodes[idx];
+		else if (curr->key != rbtNodes[idx]->key) {
+			curr = rbtNodes[idx];
+			break;
+		}
+
+	delete [] rbtNodes;
+
+	return curr;
+}
+
+/*
+ * function_identifier: Finds all nodes with the max data and then returns the node, among those, with
+ *						the min key
+ * parameters: 			N/A
+ * return value:		An rbtNode pointer
+*/
+template <typename K, typename D>
+rbtNode<K,D> *rbTree<K,D>::rbt_maxData_minKey() const {
+	rbtNode<K,D> *curr, **rbtNodes = rbt_getAllNodes();
+	
+	fooPtr<K,D> = dataKeyCompair;
+	mergeSortCallerBase(rbtNodes, 0, size - 1);
+
+	curr = rbtNodes[size - 1];
+	for(size_t idx = size - 1; idx != (size_t)-1; idx--)
+		if (idx == (size_t)-1)
+			curr = rbtNodes[idx];
+		else if (curr->key != rbtNodes[idx]->key) {
+			curr = rbtNodes[idx];
+			break;
+		}
+
+	delete [] rbtNodes;
+
+	return curr;
+}
+
+/*
+ * function_identifier: Finds all nodes with the min data and then returns the node, among those, with
+ *						the min key
+ * parameters: 			N/A
+ * return value:		An rbtNode pointer
+*/
+template <typename K, typename D>
+rbtNode<K,D> *rbTree<K,D>::rbt_minData_minKey() const {
+	rbtNode<K,D> *curr, **rbtNodes = rbt_getAllNodes();
+	
+	fooPtr<K,D> = dataKeyCompair;
+	mergeSortCallerBase(rbtNodes, 0, size - 1);
+	curr = rbtNodes[0];
+
+	delete [] rbtNodes;
+
+	return curr;
 }
 
 #endif /* _rbt_ACCESS */

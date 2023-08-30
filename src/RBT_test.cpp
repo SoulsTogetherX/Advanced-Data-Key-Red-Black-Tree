@@ -451,6 +451,51 @@ void rbt_access_test() {
 		exit(0);
 	}
 
+	try {
+		cout << "testing rbt_maxKey_maxData, rbt_maxKey_minData, rbt_minKey_maxData, rbt_minKey_minData, rbt_maxData_maxKey, rbt_minData_maxKey, rbt_maxData_minKey, rbt_minData_minKey..." << endl;
+
+		rbt1.rbt_clear();
+		rbtNode<int, int> *temp;
+
+		rbt1.rbt_insert(8, 8); // rbt_maxKey_maxData
+		rbt1.rbt_insert(8, 1); // rbt_maxKey_minData
+		rbt1.rbt_insert(1, 8); // rbt_minKey_maxData
+		rbt1.rbt_insert(1, 1); // rbt_minKey_minData
+
+		rbt1.rbt_insert(7, 9); // rbt_maxData_maxKey
+		rbt1.rbt_insert(7, 0); // rbt_minData_maxKey
+		rbt1.rbt_insert(2, 9); // rbt_maxData_minKey
+		rbt1.rbt_insert(2, 0); // rbt_minData_minKey
+
+		temp = rbt1.rbt_maxKey_maxData();
+		if (temp->rbt_getKey() != 8 || temp->rbt_getData() != 8)
+			throw;
+		temp = rbt1.rbt_maxKey_minData();
+		if (temp->rbt_getKey() != 8 || temp->rbt_getData() != 1)
+			throw;
+		temp = rbt1.rbt_minKey_maxData();
+		if (temp->rbt_getKey() != 1 || temp->rbt_getData() != 8)
+			throw;
+		temp = rbt1.rbt_minKey_minData();
+		if (temp->rbt_getKey() != 1 || temp->rbt_getData() != 1)
+			throw;
+
+		temp = rbt1.rbt_maxData_maxKey();
+		if (temp->rbt_getKey() != 7 || temp->rbt_getData() != 9)
+			throw;
+		temp = rbt1.rbt_minData_maxKey();
+		if (temp->rbt_getKey() != 7 || temp->rbt_getData() != 0)
+			throw;
+		temp = rbt1.rbt_maxData_minKey();
+		if (temp->rbt_getKey() != 2 || temp->rbt_getData() != 9)
+			throw;
+		temp = rbt1.rbt_minData_minKey();
+		if (temp->rbt_getKey() != 2 || temp->rbt_getData() != 0)
+			throw;
+	} catch (...) {
+		exit(0);
+	}
+
 	cout << endl << "========================" << endl;
 }
 
@@ -529,6 +574,29 @@ void rbt_indel_test() {
 	}
 
 	try {
+		cout << "testing rbt_repInsertFunc, rbt_repInsertFor..." << endl;
+
+		rbt2.rbt_repInsertFor(
+							 );
+		rbt2.rbt_repInsertFor([] (int &key, int &data) -> void {key = 3; data = -2;}
+							 );
+		rbt2.rbt_repInsertFor([] (int &key, int &data) -> void {key = 3; data = -2;},
+							  [] (int &, int &data) -> bool {return data < 10;}
+							 );
+		rbt2.rbt_repInsertFor([] (int &key, int &data) -> void {key = 3; data = -2;},
+							  [] (int &, int &data) -> bool {return data < 10;},
+							  [] (int &key, int &data) -> void {key = (key + 1) % 4; data += 1;}
+							 );
+
+		rbt2.rbt_repInsertFunc(4);
+		rbt2.rbt_repInsertFunc(8, 9);
+		rbt2.rbt_repInsertFunc(4, 2, [] (int st, int) -> int {return st + 6;});
+		rbt2.rbt_repInsertFunc(8, 9, [] (int st, int) -> int {return st + 6;}, values);
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
 		cout << "testing rbt_repDelete, rbt_repDeleteKey, rbt_repDeleteData..." << endl;
 
 		nodes = rbt2.rbt_getAllNodes();
@@ -540,6 +608,7 @@ void rbt_indel_test() {
 
 		delete [] nodes;
 		nodes = rbt2.rbt_getAllNodes();
+
 		rbt2.rbt_repDeleteData(2, nodes);
 
 		rbt2.rbt_repDeleteData(8, values);
@@ -547,7 +616,6 @@ void rbt_indel_test() {
 		delete [] nodes;
 		nodes = rbt2.rbt_getAllNodes();
 		rbt2.rbt_repDeleteData(2, nodes);
-
 		delete [] nodes;
 	} catch (...) {
 		exit(0);
@@ -644,7 +712,7 @@ void rbt_indel_test() {
 		rbt2.rbt_removeData(8, values);
 		nodes = rbt2.rbt_getAllNodes();
 
-		rbt2.rbt_removeData(8, nodes);
+		rbt2.rbt_removeData(rbt2.rbt_getSize(), nodes);
 		delete [] nodes;
 	} catch (...) {
 		exit(0);
@@ -847,7 +915,27 @@ void rbt_value_test() {
 	rbt3.rbt_repInsert(8, NULL, values);
 	rbt3.rbt_repInsert(8, values);
 	rbt3.rbt_repInsert(500);
-	
+
+	try {
+		cout << "testing rbt_set, rbt_func..." << endl;
+
+		rbt3.rbt_set(rbt3.rbt_getRoot(), 1, 8);
+		rbt3.rbt_func(rbt3.rbt_getRoot(), [] (int &K, int &D) -> void {K += D; D -= 1;});
+
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
+		cout << "testing rbt_setAll, rbt_funcAll..." << endl;
+
+		rbt3.rbt_setAll(9, 3);
+		rbt3.rbt_funcAll([] (int &K, int &D) -> void {K <<= 1; D*=K;});
+
+	} catch (...) {
+		exit(0);
+	}
+
 	try {
 		cout << "testing rbt_setKey, rbt_funcKey, rbt_funcKeyK, rbt_funcKeyD..." << endl;
 
@@ -982,11 +1070,63 @@ void rbt_ops_test() {
 
 		delete [] rbt4.rbt_distribute(1);
 		delete [] rbt4.rbt_distribute(2, IN_ORDER);
-		delete [] rbt4.rbt_distribute(3, PRE_ORDER, false);
-		delete [] rbt4.rbt_distribute(4, POST_ORDER, false);
-		delete [] rbt4.rbt_distribute(5, LEVEL_ORDER, false);
-		delete [] rbt4.rbt_distribute(100, IN_ORDER, false);
-		delete [] rbt4.rbt_distribute(10000, POST_ORDER, true);
+		delete [] rbt4.rbt_distribute(3, PRE_ORDER);
+		delete [] rbt4.rbt_distribute(4, POST_ORDER);
+		delete [] rbt4.rbt_distribute(5, LEVEL_ORDER);
+		delete [] rbt4.rbt_distribute(100, IN_ORDER);
+		delete [] rbt4.rbt_distribute(10000, IN_ORDER);
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
+		cout << "testing rbt_scatter..." << endl;
+
+		delete [] rbt4.rbt_scatter(1);
+		delete [] rbt4.rbt_scatter(2, IN_ORDER);
+		delete [] rbt4.rbt_scatter(3, PRE_ORDER);
+		delete [] rbt4.rbt_scatter(4, POST_ORDER);
+		delete [] rbt4.rbt_scatter(5, LEVEL_ORDER);
+		delete [] rbt4.rbt_scatter(100, IN_ORDER);
+		delete [] rbt4.rbt_scatter(10000, IN_ORDER);
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
+		cout << "testing rbt_distribute_shallow..." << endl;
+
+			rbt4.rbt_repInsert(50);
+		delete [] rbt4.rbt_distribute_shallow(1);
+			rbt4.rbt_repInsert(50);
+		delete [] rbt4.rbt_distribute_shallow(2, IN_ORDER);
+			rbt4.rbt_repInsert(50);
+		delete [] rbt4.rbt_distribute_shallow(3, PRE_ORDER);
+			rbt4.rbt_repInsert(50);
+		delete [] rbt4.rbt_distribute_shallow(4, POST_ORDER);
+			rbt4.rbt_repInsert(50);
+		delete [] rbt4.rbt_distribute_shallow(5, LEVEL_ORDER);
+			rbt4.rbt_repInsert(50);
+		delete [] rbt4.rbt_distribute_shallow(100, IN_ORDER);
+	} catch (...) {
+		exit(0);
+	}
+
+	try {
+		cout << "testing rbt_scatter_shallow..." << endl;
+
+			rbt4.rbt_repInsert(50);
+		delete [] rbt4.rbt_scatter_shallow(1);
+			rbt4.rbt_repInsert(50);
+		delete [] rbt4.rbt_scatter_shallow(2, IN_ORDER);
+			rbt4.rbt_repInsert(50);
+		delete [] rbt4.rbt_scatter_shallow(3, PRE_ORDER);
+			rbt4.rbt_repInsert(50);
+		delete [] rbt4.rbt_scatter_shallow(4, POST_ORDER);
+			rbt4.rbt_repInsert(50);
+		delete [] rbt4.rbt_scatter_shallow(5, LEVEL_ORDER);
+			rbt4.rbt_repInsert(50);
+		delete [] rbt4.rbt_scatter_shallow(100, IN_ORDER);
 	} catch (...) {
 		exit(0);
 	}

@@ -2,9 +2,22 @@
 #define _rbt_SORT
 #include	"RBT_main.h"
 
+/*==============================================================================\
+ | Program:		Key-Data Red-Black Tree Implementation							|
+ | AUTHOR:		Xavier Alvarez 													|
+ | CREATE DATE:	15-January-2023 												|
+ | COPYRIGHT:	apache-2.0														|
+ | VERSION:		1.0																|
+ | DESCRIPTION:	A red-black semi-balanced binary search tree. Provides a		|
+ |				multitude of useful functions, including O(log(N)) lookup,		|
+ |				insert and delete operations.									|
+ \=============================================================================*/
+
 	/*	 GLOBAL VARIABLES	*/
-template <typename K, typename D>
-inline static bool(*fooPtr)(rbtNode<K,D> *, rbtNode<K,D> *);
+namespace {
+	template <typename K, typename D>
+	inline bool(*fooPtr)(rbtNode<K,D> *, rbtNode<K,D> *);
+}
 
 /*	============================================================================  */
 /* |                                                                            | */
@@ -12,93 +25,95 @@ inline static bool(*fooPtr)(rbtNode<K,D> *, rbtNode<K,D> *);
 /* |                                                                            | */
 /*	============================================================================  */
 
-/*
- * function_identifier: Swaps the values at two addresses (used by partitionPair() and partition())
- * parameters: 			The addresses of two values of the same dataType
- * return value:		N/S
-*/
-template <typename T>
-inline void swap(T *key1, T *key2) {
-	T tmp = *key1;
-	*key1 = *key2;
-	*key2 = tmp;
-}
+namespace {
+	/*
+	 * function_identifier: Swaps the values at two addresses (used by partitionPair() and partition())
+	 * parameters: 			The addresses of two values of the same dataType
+	 * return value:		N/S
+	*/
+	template <typename T>
+	inline void swap(T *key1, T *key2) {
+		T tmp = *key1;
+		*key1 = *key2;
+		*key2 = tmp;
+	}
 
-/*
- * function_identifier: The partition step of quickSortPair(). Ensures to keep the values in both arrays in
- *						the same relative order
- * parameters: 			Two arrays of same length, as well as the start and end indexes that should be considered in the lists
- * return value:		The partition index
-*/
-template <typename T, typename U>
-inline size_t partitionPair(T *type1, U *type2, size_t st, size_t ed) {
-		// Sets up the pivot
-	T pivot = *(type1 + ed), *temp;
-	size_t i = st;
+	/*
+	 * function_identifier: The partition step of quickSortPair(). Ensures to keep the values in both arrays in
+	 *						the same relative order
+	 * parameters: 			Two arrays of same length, as well as the start and end indexes that should be considered in the lists
+	 * return value:		The partition index
+	*/
+	template <typename T, typename U>
+	inline size_t partitionPair(T *type1, U *type2, size_t st, size_t ed) {
+			// Sets up the pivot
+		T pivot = *(type1 + ed), *temp;
+		size_t i = st;
 
-		// Loops through the array and sorts
-	for(size_t j = st; j < ed; j++) {
-		temp = type1 + j;
-		if(*temp <= pivot) {
-			swap((type1 + i), temp);
-			swap((type2 + i), (type2 + j));
-			i++;
+			// Loops through the array and sorts
+		for(size_t j = st; j < ed; j++) {
+			temp = type1 + j;
+			if(*temp <= pivot) {
+				swap((type1 + i), temp);
+				swap((type2 + i), (type2 + j));
+				i++;
+			}
+		}
+
+			// Swaps back the pivot
+		swap((type1 + i), (type1 + ed));
+		swap((type2 + i), (type2 + ed));
+		return i;
+	}
+
+	/*
+	 * function_identifier: Sorts two array, while preserving their relative order, in ascending order, via the quick sort algorithm
+	 * parameters: 			Two arrays of same length, as well as the start and end indexes that should be considered in the lists
+	 * return value:		N/A
+	*/
+	template <typename T, typename U>
+	inline void quickSortPair(T *type1, U *type2, size_t st, size_t ed) {
+		if(st < ed) {
+			size_t p = partitionPair(type1, type2, st, ed);
+			quickSortPair(type1, type2, st, p - 1);
+			quickSortPair(type1, type2, p + 1, ed);
 		}
 	}
 
-		// Swaps back the pivot
-	swap((type1 + i), (type1 + ed));
-	swap((type2 + i), (type2 + ed));
-	return i;
-}
+	/*
+	 * function_identifier: The partition step of quickSort().
+	 * parameters: 			The start and end pointers of a singular array
+	 * return value:		The partition pointer
+	*/
+	template <typename T>
+	inline T *partition(T *st, T *ed) {
+			// Sets up the pivot
+		T pivot = *ed, *mi = st;
 
-/*
- * function_identifier: Sorts two array, while preserving their relative order, in ascending order, via the quick sort algorithm
- * parameters: 			Two arrays of same length, as well as the start and end indexes that should be considered in the lists
- * return value:		N/A
-*/
-template <typename T, typename U>
-inline void quickSortPair(T *type1, U *type2, size_t st, size_t ed) {
-	if(st < ed) {
-		size_t p = partitionPair(type1, type2, st, ed);
-		quickSortPair(type1, type2, st, p - 1);
-		quickSortPair(type1, type2, p + 1, ed);
-	}
-}
+			// Loops through the array and sorts
+		while(st != ed) {
+			if(*st <= pivot)
+				swap(mi++, st);
+			st++;
+		}
 
-/*
- * function_identifier: The partition step of quickSort().
- * parameters: 			The start and end pointers of a singular array
- * return value:		The partition pointer
-*/
-template <typename T>
-inline T *partition(T *st, T *ed) {
-		// Sets up the pivot
-	T pivot = *ed, *mi = st;
-
-		// Loops through the array and sorts
-	while(st != ed) {
-		if(*st <= pivot)
-			swap(mi++, st);
-		st++;
+			// Swaps back the pivot
+		swap(mi, ed);
+		return mi;
 	}
 
-		// Swaps back the pivot
-	swap(mi, ed);
-	return mi;
-}
-
-/*
- * function_identifier: Sorts an array in ascending order, via the quick sort algorithm
- * parameters: 			The start and end pointers of a singular array
- * return value:		N/A
-*/
-template <typename T>
-inline void quickSort(T *st, T *ed) {
-	if(st < ed) {
-		T *p = partition(st, ed);
-		quickSort(st, p - 1);
-		quickSort(p + 1, ed);
+	/*
+	 * function_identifier: Sorts an array in ascending order, via the quick sort algorithm
+	 * parameters: 			The start and end pointers of a singular array
+	 * return value:		N/A
+	*/
+	template <typename T>
+	inline void quickSort(T *st, T *ed) {
+		if(st < ed) {
+			T *p = partition(st, ed);
+			quickSort(st, p - 1);
+			quickSort(p + 1, ed);
+		}
 	}
 }
 
@@ -200,61 +215,63 @@ bool rbTree<K,D>::dataKeyCompairR(rbtNode<K,D> *IdxS, rbtNode<K,D> *IdxM) {
 /* |                                                                            | */
 /*	============================================================================  */
 
-/*
- * function_identifier: Merges two sections in a list, using the provided function (called be "mergeSortCallerBase()")
- * parameters: 			An array of node pointers, the start pos of the section, the middle pos of the section, the end pos of the section, and
- *						the comparison function
- * return value:		N/A
-*/
-template <typename K, typename D>
-inline void mergeSortBase(rbtNode<K,D> **nodes, size_t st, size_t mi, size_t ed) {
-		// Sets up the needed arrays and pointers
-	rbtNode<K,D> **memo = new rbtNode<K,D> *[ed-st];
-	rbtNode<K,D> **IdxS = nodes + st, **IdxE1 = nodes + mi + 1;
-	rbtNode<K,D> **IdxM = IdxE1, **IdxE2 = nodes + ed;
+namespace {
+	/*
+	 * function_identifier: Merges two sections in a list, using the provided function (called be "mergeSortCallerBase()")
+	 * parameters: 			An array of node pointers, the start pos of the section, the middle pos of the section, the end pos of the section, and
+	 *						the comparison function
+	 * return value:		N/A
+	*/
+	template <typename K, typename D>
+	inline void mergeSortBase(rbtNode<K,D> **nodes, size_t st, size_t mi, size_t ed) {
+			// Sets up the needed arrays and pointers
+		rbtNode<K,D> **memo = new rbtNode<K,D> *[ed-st];
+		rbtNode<K,D> **IdxS = nodes + st, **IdxE1 = nodes + mi + 1;
+		rbtNode<K,D> **IdxM = IdxE1, **IdxE2 = nodes + ed;
 
-		// Sorts through the lists
-	while(IdxS < IdxE1 && IdxM < IdxE2)
-		if (fooPtr<K,D>(*IdxS, *IdxM))
+			// Sorts through the lists
+		while(IdxS < IdxE1 && IdxM < IdxE2)
+			if (fooPtr<K,D>(*IdxS, *IdxM))
+				(*memo++) = (*IdxS++);
+			else
+				(*memo++) = (*IdxM++);
+
+			// Include any remaining nodes not yet accounted for
+		while(IdxS < IdxE1)
 			(*memo++) = (*IdxS++);
-		else
+		while(IdxM < IdxE2)
 			(*memo++) = (*IdxM++);
 
-		// Include any remaining nodes not yet accounted for
-	while(IdxS < IdxE1)
-		(*memo++) = (*IdxS++);
-	while(IdxM < IdxE2)
-		(*memo++) = (*IdxM++);
+			// Reinserts the sorted nodes
+		IdxS = nodes + st;
+		memo -= (ed - st);
+		while(IdxS != IdxE2)
+			(*IdxS++) = (*memo++);
 
-		// Reinserts the sorted nodes
-	IdxS = nodes + st;
-	memo -= (ed - st);
-	while(IdxS != IdxE2)
-		(*IdxS++) = (*memo++);
+			// Deletes the previously allocated memory
+		delete [] (memo + st - ed);
+	}
 
-		// Deletes the previously allocated memory
-	delete [] (memo + st - ed);
-}
-
-/*
- * function_identifier: Sorts an array of tree node pointers, using the provided function (called be "rbt_nodeSort()")
- * parameters: 			An array of node pointers, the pos to start the sort, the pos to end the sort, and
- *						the comparison function
- * return value:		N/A
-*/
-template <typename K, typename D>
-inline void mergeSortCallerBase(rbtNode<K,D> **nodes, size_t si, size_t ed) {
-		// Checks if there is still more to sort
-		// If so, recursively call this function again, with subdivided arrays
-	if(si < ed) {
-			// Calculates the mid point
-		size_t mi = si + ((ed - si) >> 1);
-			// Recursively call this function again for subdivisions of the given array
-		mergeSortCallerBase(nodes, si, mi);
-		mergeSortCallerBase(nodes, mi + 1, ed);
-			// Merges the two sorted subdivided of the given arrays
-		mergeSortBase(nodes, si, mi, ed + 1);
-	} 
+	/*
+	 * function_identifier: Sorts an array of tree node pointers, using the provided function (called be "rbt_nodeSort()")
+	 * parameters: 			An array of node pointers, the pos to start the sort, the pos to end the sort, and
+	 *						the comparison function
+	 * return value:		N/A
+	*/
+	template <typename K, typename D>
+	inline void mergeSortCallerBase(rbtNode<K,D> **nodes, size_t si, size_t ed) {
+			// Checks if there is still more to sort
+			// If so, recursively call this function again, with subdivided arrays
+		if(si < ed) {
+				// Calculates the mid point
+			size_t mi = si + ((ed - si) >> 1);
+				// Recursively call this function again for subdivisions of the given array
+			mergeSortCallerBase(nodes, si, mi);
+			mergeSortCallerBase(nodes, mi + 1, ed);
+				// Merges the two sorted subdivided of the given arrays
+			mergeSortBase(nodes, si, mi, ed + 1);
+		} 
+	}
 }
 
 /*
@@ -277,6 +294,7 @@ void rbt_nodeSort(rbtNode<K,D> **nodes, size_t si, size_t ed, enum rbtsort sort 
 		case KEYDATA_R:		fooPtr<K,D> = rbTree<K,D>::keyDataCompairR; break;
 		case DATAKEY:		fooPtr<K,D> = rbTree<K,D>::dataKeyCompair; break;
 		case DATAKEY_R:		fooPtr<K,D> = rbTree<K,D>::dataKeyCompairR; break;
+		case NONE:			return;
 	}
 	mergeSortCallerBase(nodes, si, ed - 1);
 }

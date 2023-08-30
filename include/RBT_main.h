@@ -80,6 +80,8 @@ class rbTree {
 
 		// RBT_access
 	inline size_t findIdxBase(rbtNode<K,D> *) const;
+	rbtNode<K,D> *key_maxData(rbtNode<K,D> *, K) const;
+	rbtNode<K,D> *key_minData(rbtNode<K,D> *, K) const;
 
 	size_t getHeight(rbtNode<K,D> *) const;
 	void getWidth(rbtNode<K,D> *, size_t) const;
@@ -99,20 +101,85 @@ class rbTree {
 
 		// RBT_indel
 	template <typename F>
-		void removeDuplicatesBase(F);
+		void rbt_repInsertBase(size_t, F, bool);
+	template <typename F>
+		inline void repDeleteBase(size_t, rbtNode<K,D> **, F, bool);
+	template <typename F, typename T>
+		inline void repDeleteBase(size_t, T *, F, bool);
+	template <typename F1, typename F2, typename T>
+		inline void removeBase(size_t, rbtNode<K,D> **, T *, F1, F2, bool);
+	template <typename F, typename T>
+		inline void removeRawBase(size_t, T *, F, bool);
+	template <typename F, typename T>
+		inline void removeBase(T, F);
+	template <typename F>
+		inline void removeDuplicatesBase(F);
 
-		// RBT_operation
-	template <typename F1, typename F2>
-		inline rbTree<K,D> orBase(const rbTree<K,D> &, F1, F2, bool = false, bool = false) const;
-	template <typename F1, typename F2>
-		inline rbTree<K,D> orBaseI(const rbTree<K,D> &, F1, F2, bool = false, bool = false);
-	template <typename F1, typename F2>
-		inline rbTree<K,D> andBase(const rbTree<K,D> &, F1, F2, bool = false) const;
-	template <typename F1, typename F2>
-		inline rbTree<K,D> andBaseI(const rbTree<K,D> &, F1, F2, bool = false);
+		// RBT_ops
+	inline rbTree<K,D> subBase(const rbTree<K,D> &, void (*foo)(rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&)) const;
+	inline rbTree<K,D> *divideBase(
+		size_t div,
+		enum rbtraversal traversal,
+		rbTree<K,D> *(rbTree<K, D>::*foo)(),
+		void (rbTree<K,D>::*bar)(size_t, rbtNode<K,D> **, rbTree<K,D> *, enum rbtraversal, size_t (rbTree<K, D>::*)(size_t, size_t, rbtNode<K,D> **, rbtNode<K,D> **)),
+		size_t (rbTree<K,D>::*nar)(size_t, size_t, rbtNode<K,D> **, rbtNode<K,D> **));
+	inline rbTree<K,D> *deepDivideHelper();
+	inline rbTree<K,D> *shallowDivideHelper();
+	inline void distributeDivideHelper(
+		size_t,
+		rbtNode<K,D> **,
+		rbTree<K,D> *,
+		enum rbtraversal,
+		size_t (rbTree<K, D>::*)(size_t, size_t, rbtNode<K,D> **, rbtNode<K,D> **));
+	inline void scatterDivideHelper(
+		size_t,
+		rbtNode<K,D> **,
+		rbTree<K,D> *,
+		enum rbtraversal,
+		size_t (rbTree<K, D>::*)(size_t, size_t, rbtNode<K,D> **, rbtNode<K,D> **));
 
-		// RBT_function
+		// RBT_setops
+	template <typename F>
+		inline rbTree<K,D> orBase(
+								 const rbTree<K,D> &,
+								 void (*)(rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&),
+								 F,
+								 bool = false,
+								 bool = false
+								 ) const;
+	template <typename F>
+		inline rbTree<K,D> orBaseI(
+								  const rbTree<K,D> &,
+								  void (*)(rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&),
+								  F,
+								  bool = false,
+								  bool = false
+								  );
+	template <typename F>
+		inline rbTree<K,D> andBase(
+								  const rbTree<K,D> &,
+								  void (*)(rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&),
+								  F,
+								  bool = false
+								  ) const;
+	template <typename F>
+		inline rbTree<K,D> andBaseI(
+								   const rbTree<K,D> &,
+								   void (*)(rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&),
+								   F,
+								   bool = false
+								   );
+
+		// RBT_limit
+	template <typename F>
+		void rbt_clampBase(F);
+
+		// RBT_value
 	void nodeReposition(rbtNode<K,D> **, rbtNode<K,D> **, rbtNode<K,D> **, rbtNode<K,D> *);
+	template <typename F>
+		inline void rbt_setBase(rbtNode<K,D> *, F);
+	template <typename F>
+		inline void rbt_funcAllBase(F);
 
 		// RBT_string
 	void testOrder(rbtNode<K,D> *) const;
@@ -209,6 +276,16 @@ class rbTree {
 		rbtNode<K,D> *rbt_search(K, D) const;
 		rbtNode<K,D> *rbt_search(rbtNode<K,D> *) const;
 
+		rbtNode<K,D> *rbt_maxKey_maxData() const;
+		rbtNode<K,D> *rbt_maxKey_minData() const;
+		rbtNode<K,D> *rbt_minKey_maxData() const;
+		rbtNode<K,D> *rbt_minKey_minData() const;
+
+		rbtNode<K,D> *rbt_maxData_maxKey() const;
+		rbtNode<K,D> *rbt_minData_maxKey() const;
+		rbtNode<K,D> *rbt_maxData_minKey() const;
+		rbtNode<K,D> *rbt_minData_minKey() const;
+
 			// RBT_sort
 		inline static bool keyCompair(rbtNode<K,D> *, rbtNode<K,D> *);
 		inline static bool keyCompairR(rbtNode<K,D> *, rbtNode<K,D> *);
@@ -224,10 +301,19 @@ class rbTree {
 			friend void rbt_nodeSort(rbtNode<K,D> **, size_t, size_t, enum rbtsort);
 
 			// RBT_indel
+		void rbt_repInsert(size_t, K * = NULL, D * = NULL);
 		void rbt_repInsert(size_t, rbtNode<K,D> **);
-		void rbt_repInsert(size_t, const K * = NULL, const D * = NULL);
-		void rbt_repInsertInc(size_t, K = K(), K = K(1), const D * = NULL);
-		void rbt_repInsertDec(size_t, K = K(), K = K(1), const D * = NULL);
+		void rbt_repInsertFunc(size_t,
+							   K = K(),
+							   K (*)(K, D) = [] (K st, D) -> K {return st + 1;},
+							   D * = NULL);
+		void rbt_repInsertInc(size_t, K = K(), K = K(1), D * = NULL);
+		void rbt_repInsertDec(size_t, K = K(), K = K(1), D * = NULL);
+		void rbt_repInsertFor(
+							 void (*initialize)(K &, D &) = [] (K &key, D &data) -> void {key = 0; data = 0;},
+							 bool (*condition)(K &, D &) = [] (K &key, D &) -> bool {return key < 10;},
+							 void (*step)(K &, D &) = [] (K &key, D &data) -> void {key += 1; data += 1;}
+							 );
 
 		void rbt_repDelete(size_t, rbtNode<K,D> **);
 		void rbt_repDelete(size_t, K *, D *);
@@ -351,69 +437,76 @@ class rbTree {
 				// TREE ADVANCED OPERATIONS 
 		rbTree<K,D> rbt_invert();
 		rbTree<K,D> rbt_invertI();
-		rbTree<K,D> *rbt_distribute(size_t, enum rbtraversal = LEVEL_ORDER, bool = false);
+		rbTree<K,D> *rbt_distribute(size_t, enum rbtraversal = LEVEL_ORDER);
+		rbTree<K,D> *rbt_distribute_shallow(size_t, enum rbtraversal = LEVEL_ORDER);
+		rbTree<K,D> *rbt_scatter(size_t, enum rbtraversal = LEVEL_ORDER);
+		rbTree<K,D> *rbt_scatter_shallow(size_t, enum rbtraversal = LEVEL_ORDER);
 
 			// RBT_limit
+		void rbt_clamp(K, K, D, D);
+		void rbt_clamp(size_t, K *, K *, size_t, D *, D *);
+		void rbt_exclude(K, K, D, D);
+		void rbt_exclude(size_t, K *, K *, size_t, D *, D *);
+
 		void rbt_clampKey(K, K);
-		void rbt_clampKey(size_t arrayLength, K *, K *);
-
-		void rbt_clampData(D, D);
-		void rbt_clampData(size_t arrayLength, D *, D *);
-
+		void rbt_clampKey(size_t, K *, K *);
 		void rbt_excludeKey(K, K);
-		void rbt_excludeKey(size_t arrayLength, K *, K *);
-
-		void rbt_excludeData(D, D);
-		void rbt_excludeData(size_t arrayLength, D *, D *);
-
+		void rbt_excludeKey(size_t, K *, K *);
 		void rbt_upperLimitKey(K);
 		void rbt_lowerLimitKey(K);
-
-		void rbt_upperLimitData(D);
-		void rbt_lowerLimitData(D);
-
 		void rbt_deleteHighestKey(const size_t);
 		void rbt_removeHighestKey(const size_t);
 		void rbt_deleteLowestKey(const size_t);
 		void rbt_removeLowestKey(const size_t);
 
+		void rbt_clampData(D, D);
+		void rbt_clampData(size_t, D *, D *);
+		void rbt_excludeData(D, D);
+		void rbt_excludeData(size_t, D *, D *);
+		void rbt_upperLimitData(D);
+		void rbt_lowerLimitData(D);
 		void rbt_deleteHighestData(const size_t);
 		void rbt_removeHighestData(const size_t);
 		void rbt_deleteLowestData(const size_t);
 		void rbt_removeLowestData(const size_t);
 
 			// RBT_value
-		void rbt_setKey(rbtNode<K,D> *, K);
+		void rbt_set(rbtNode<K,D> *, K, D);
+		void rbt_func(rbtNode<K,D> *, void (*)(K &, D &));
 
-		void rbt_funcKey(rbtNode<K,D> *, K (*someFunc)());
-		void rbt_funcKey(rbtNode<K,D> *, K(*someFunc)(K, D));
-		void rbt_funcKeyK(rbtNode<K,D> *, K (*someFunc)(K));
-		void rbt_funcKeyD(rbtNode<K,D> *, K (*someFunc)(D));
+		void rbt_setAll(K, D);
+		void rbt_funcAll(void (*)(K &, D &));
+
+		void rbt_setKey(rbtNode<K,D> *, K);
+		void rbt_funcKey(rbtNode<K,D> *, K (*)());
+		void rbt_funcKey(rbtNode<K,D> *, K (*)(K, D));
+		void rbt_funcKeyK(rbtNode<K,D> *, K (*)(K));
+		void rbt_funcKeyD(rbtNode<K,D> *, K (*)(D));
 
 		void rbt_setAllKeys(K);
-		void rbt_funcAllKeys(K (*someFunc)());
-		void rbt_funcAllKeys(K (*someFunc)(K, D));
-		void rbt_funcAllKeysK(K (*someFunc)(K));
-		void rbt_funcAllKeysD(K (*someFunc)(D));
+		void rbt_funcAllKeys(K (*)());
+		void rbt_funcAllKeys(K (*)(K, D));
+		void rbt_funcAllKeysK(K (*)(K));
+		void rbt_funcAllKeysD(K (*)(D));
 
 		void rbt_setData(rbtNode<K,D> *, D);
-
-		void rbt_funcData(rbtNode<K,D> *, D (*someFunc)());
-		void rbt_funcData(rbtNode<K,D> *, D(*someFunc)(K, D));
-		void rbt_funcDataK(rbtNode<K,D> *, D (*someFunc)(K));
-		void rbt_funcDataD(rbtNode<K,D> *, D (*someFunc)(D));
+		void rbt_funcData(rbtNode<K,D> *, D (*)());
+		void rbt_funcData(rbtNode<K,D> *, D (*)(K, D));
+		void rbt_funcDataK(rbtNode<K,D> *, D (*)(K));
+		void rbt_funcDataD(rbtNode<K,D> *, D (*)(D));
 
 		void rbt_setAllData(D);
-		void rbt_funcAllData(D (*someFunc)());
-		void rbt_funcAllData(D (*someFunc)(K, D));
-		void rbt_funcAllDataK(D (*someFunc)(K));
-		void rbt_funcAllDataD(D (*someFunc)(D));
+		void rbt_funcAllData(D (*)());
+		void rbt_funcAllData(D (*)(K, D));
+		void rbt_funcAllDataK(D (*)(K));
+		void rbt_funcAllDataD(D (*)(D));
 
 			// RBT_string
 		std::string rbt_string(enum rbtraversal = IN_ORDER, size_t = 0) const;
 		template <K, D>
 			friend std::ostream& operator<<(std::ostream &, rbTree<K,D> &);
 };
+
 
 /*			Modules			*/
 #include	"RBT_traversal.h"

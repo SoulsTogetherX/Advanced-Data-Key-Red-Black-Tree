@@ -3,8 +3,21 @@
 #include	"RBT_main.h"
 #include	"RBT_string.h"
 
+/*==============================================================================\
+ | Program:		Key-Data Red-Black Tree Implementation							|
+ | AUTHOR:		Xavier Alvarez 													|
+ | CREATE DATE:	15-January-2023 												|
+ | COPYRIGHT:	apache-2.0														|
+ | VERSION:		1.0																|
+ | DESCRIPTION:	A red-black semi-balanced binary search tree. Provides a		|
+ |				multitude of useful functions, including O(log(N)) lookup,		|
+ |				insert and delete operations.									|
+ \=============================================================================*/
+
 	/*	 GLOBAL VARIABLES	*/
-inline std::ostringstream traverseStr;
+namespace {
+	inline std::ostringstream traverseStr;
+}
 
 /*	============================================================================  */
 /* |                                                                            | */
@@ -186,7 +199,7 @@ std::string rbTree<K,D>::rbt_string(enum rbtraversal traversal, size_t level) co
 		// Clears string buffer
 	traverseStr.str(std::string());
 		// Calls the appropriate function depending on the given traversal argument
-	switch(traversal) {
+	switch(traversal) { 
 		case TEST_ORDER:		testOrder(root); break;
 		case PRE_ORDER:			preOrder(root); break;
 		case IN_ORDER:			inOrder(root); break;

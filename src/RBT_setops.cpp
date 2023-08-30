@@ -5,6 +5,17 @@
 #include	"RBT_traversal.h"
 #include	"RBT_sort.h"
 
+/*==============================================================================\
+ | Program:		Key-Data Red-Black Tree Implementation							|
+ | AUTHOR:		Xavier Alvarez 													|
+ | CREATE DATE:	15-January-2023 												|
+ | COPYRIGHT:	apache-2.0														|
+ | VERSION:		1.0																|
+ | DESCRIPTION:	A red-black semi-balanced binary search tree. Provides a		|
+ |				multitude of useful functions, including O(log(N)) lookup,		|
+ |				insert and delete operations.									|
+ \=============================================================================*/
+
 /*	============================================================================  */
 /* |                                                                            | */
 /* |                      TREE UNION AND INTERSECTION                           | */
@@ -13,12 +24,21 @@
 
 /*
  * function_identifier: The base template for the or and xor opperations
- * parameters: 			A red-black tree and a function to copy over nodes
+ * parameters: 			A red-black tree, a function to copy over nodes, an optional function to delete
+ *						duplicates, a boolean to check if this call is in data context, and a boolean
+ *						to check if this call is in xor context
  * return value:		A red-black tree
 */
 template <typename K, typename D>
-template <typename F1, typename F2>
-inline rbTree<K,D> rbTree<K,D>::orBase(const rbTree<K,D> &rbt, F1 foo, F2 bar, bool data, bool _xor) const {
+template <typename F>
+inline rbTree<K,D> rbTree<K,D>::orBase(
+									  const rbTree<K,D> &rbt,
+									  void (*foo)(rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&),
+									  F bar,
+									  bool data,
+									  bool _xor
+									  ) const
+{
 		// If one or both of the trees are empty, or if the same tree is given, do the trival case
 	if (!rbt.size || &rbt == this) {
 		if (_xor && &rbt == this)
@@ -99,12 +119,21 @@ inline rbTree<K,D> rbTree<K,D>::orBase(const rbTree<K,D> &rbt, F1 foo, F2 bar, b
 
 /*
  * function_identifier: The base template for the orI and xorI opperations
- * parameters: 			A red-black tree and a function to copy over nodes
+ * parameters: 			A red-black tree, a function to copy over nodes, an optional function to delete
+ *						duplicates, a boolean to check if this call is in data context, and a boolean
+ *						to check if this call is in xor context
  * return value:		This object
 */
 template <typename K, typename D>
-template <typename F1, typename F2>
-inline rbTree<K,D> rbTree<K,D>::orBaseI(const rbTree<K,D> &rbt, F1 foo, F2 bar, bool data, bool _xor) {
+template <typename F>
+inline rbTree<K,D> rbTree<K,D>::orBaseI(
+									   const rbTree<K,D> &rbt,
+									   void (*foo)(rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&),
+									   F bar,
+									   bool data,
+									   bool _xor
+									   )
+{
 		// If one or both of the trees are empty, or if the same tree is given, do the trival case
 	if (!rbt.size || &rbt == this) {
 		if (_xor && &rbt == this)
@@ -1497,8 +1526,14 @@ rbTree<K,D> rbTree<K,D>::rbt_xorDataMostI(const rbTree<K,D> &rbt) {
  * return value:		A red-black tree
 */
 template <typename K, typename D>
-template <typename F1, typename F2>
-inline rbTree<K,D> rbTree<K,D>::andBase(const rbTree<K,D> &rbt, F1 foo, F2 bar, bool data) const {
+template <typename F>
+inline rbTree<K,D> rbTree<K,D>::andBase(
+									   const rbTree<K,D> &rbt,
+									   void (*foo)(rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&),
+									   F bar,
+									   bool data
+									   ) const
+{
 		// Ignores the trival case
 	if (!size || !rbt.size)
 		return rbTree<K,D>();
@@ -1563,8 +1598,14 @@ inline rbTree<K,D> rbTree<K,D>::andBase(const rbTree<K,D> &rbt, F1 foo, F2 bar, 
  * return value:		A red-black tree
 */
 template <typename K, typename D>
-template <typename F1, typename F2>
-inline rbTree<K,D> rbTree<K,D>::andBaseI(const rbTree<K,D> &rbt, F1 foo, F2 bar, bool data) {
+template <typename F>
+inline rbTree<K,D> rbTree<K,D>::andBaseI(
+										const rbTree<K,D> &rbt,
+										void (*foo)(rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&, rbtNode<K,D> **&),
+										F bar,
+										bool data
+										)
+{
 		// Ignores the trival case
 	if (!size || !rbt.size) {
 		rbt_clear();
@@ -2083,13 +2124,6 @@ rbTree<K,D> rbTree<K,D>::rbt_andKeyMostI(const rbTree<K,D> &rbt) {
 				IdxS2++;
     }, &rbTree<K,D>::dummy, false);
 }
-
-
-
-
-
-
-
 
 /*
  * function_identifier: Takes all nodes from two rbTrees and process them into a new rbTree

@@ -3,9 +3,22 @@
 #include	"RBT_main.h"
 #include	"RBT_traversal.h"
 
+/*==============================================================================\
+ | Program:		Key-Data Red-Black Tree Implementation							|
+ | AUTHOR:		Xavier Alvarez 													|
+ | CREATE DATE:	15-January-2023 												|
+ | COPYRIGHT:	apache-2.0														|
+ | VERSION:		1.0																|
+ | DESCRIPTION:	A red-black semi-balanced binary search tree. Provides a		|
+ |				multitude of useful functions, including O(log(N)) lookup,		|
+ |				insert and delete operations.									|
+ \=============================================================================*/
+
 	/*	 GLOBAL VARIABLES	*/
-inline void **nodePtr;
-inline std::byte *basePtr;
+namespace {
+	inline void **nodePtr;
+	inline std::byte *basePtr;
+}
 
 /*	============================================================================  */
 /* |                                                                            | */
@@ -528,8 +541,8 @@ rbtNode<K,D> **rbTree<K,D>::resize_helper(rbtNode<K,D> **nodeArray, size_t nodes
 	rbtNode<K,D> **tempPlace = nodeArray, **endArray;
 	nodeArray = new rbtNode<K,D>*[nodes]; endArray = nodeArray + nodes;
 		// Shallow copies values over
-	for(; nodeArray != endArray; tempPlace++, nodeArray++)
-		*nodeArray = *tempPlace;
+	while(nodeArray != endArray)
+		*nodeArray++ = *tempPlace++;
 		// Deletes old array
 	delete [] (rbtNode<K,D> **)(nodePtr - nodes);
 		// Returns new array's address

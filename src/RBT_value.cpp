@@ -4,9 +4,14 @@
 #include	"RBT_sort.h"
 
 	/*	 GLOBAL VARIABLES	*/
+namespace {
 		// External From 'RBT_sort.cpp'
-template <typename K, typename D>
-extern inline bool(*fooPtr)(rbtNode<K,D> *, rbtNode<K,D> *);
+	template <typename K, typename D>
+	extern inline bool(*fooPtr)(rbtNode<K,D> *, rbtNode<K,D> *);
+
+		// External From 'def.h'
+	extern inline void *rbt__otherData__;
+}
 
 /*	============================================================================  */
 /* |                                                                            | */
@@ -42,6 +47,159 @@ void rbTree<K,D>::nodeReposition(rbtNode<K,D> **rbtNodes, rbtNode<K,D> **IdxS, r
 	delete [] rbtNodes;
 }
 
+/*
+ * function_identifier: The base template for all single node set functions
+ * parameters: 			A node to alter and a function that changes the node
+ * return value:		N/A
+*/
+template <typename K, typename D>
+template <typename F>
+void rbTree<K,D>::rbt_setBase(rbtNode<K,D> *curr, F foo) {
+		// Initializes values
+	rbtNode<K,D> **rbtNodes, **IdxS, **IdxE;
+
+		// Gets all nodes
+	IdxS = rbtNodes = rbt_getAllNodes(); IdxE = IdxS + size;
+
+		// Cycles through all nodes of this red-black tree
+	while(true) {
+			// If the node is not found in this red-black tree, just return
+		if (IdxS == IdxE) {
+			delete [] rbtNodes;
+			return;
+		}
+			// Else, if node is found in this red-black tree, begin repositioning
+		if (*IdxS == curr)
+			break;
+			// Otherwise, check another node
+		IdxS++;
+	}
+
+		// Sets the node's relevant value(s) and begins repositioning
+	foo(curr);
+	nodeReposition(rbtNodes, IdxS, IdxE, curr);
+}
+
+/*
+ * function_identifier: The base template for all full-tree set functions
+ * parameters: 			A function that changes all nodes
+ * return value:		N/A
+*/
+template <typename K, typename D>
+template <typename F>
+inline void rbTree<K,D>::rbt_funcAllBase(F foo) {
+		// Return if red-black tree is empty
+	if (!size)
+		return;
+
+		// Initializes values
+	rbtNode<K,D> **IdxS, **IdxE;
+
+		// Gets all nodes
+	IdxS = rbt_getAllNodes(); IdxE = IdxS + size;
+
+		// Reassigns all relevant values
+	foo(IdxS, IdxE);
+
+		// Repositions all nodes
+	IdxS -= size;
+	fooPtr<K,D> = keyDataCompair;
+	mergeSortCallerBase(IdxS, 0, size - 1);
+	treeifyShallow(0, size - 1, IdxS, &root);
+
+		// Clears array of nodes
+	delete [] IdxS;
+}
+
+/*	============================================================================  */
+/* |                                                                            | */
+/* |                             KEY DATA FUNCTIONS                             | */
+/* |                                                                            | */
+/*	============================================================================  */
+
+/*
+ * function_identifier: Changes the key and data values of a given node
+ *						Automatically repositions the node in the red-black tree
+ *						Does nothing if the node is not from this tree
+ * parameters: 			A node from the current tree and new key and data values
+ * return value:		N/A
+*/
+template <typename K, typename D>
+void rbTree<K,D>::rbt_set(rbtNode<K,D> *curr, K key, D data) {
+	rbt__otherData__ = new std::byte **[2];
+	((K **)rbt__otherData__)[0] = &key;
+	((D **)rbt__otherData__)[1] = &data;
+
+	rbt_setBase(curr, [] (rbtNode<K,D> *curr) -> void {
+		curr->key = *((K **)rbt__otherData__)[0];
+		curr->data = *((D **)rbt__otherData__)[1];
+	});
+	delete [] (std::byte **)rbt__otherData__;
+}
+
+/*
+ * function_identifier: Changes the key and data values of a given node
+ *						Automatically repositions the node in the red-black tree
+ *						Does nothing if the node is not from this tree
+ * parameters: 			A node from the current tree and a function that returns
+ *						new key and data values by reference
+ * return value:		N/A
+*/
+template <typename K, typename D>
+void rbTree<K,D>::rbt_func(rbtNode<K,D> *curr, void (*someFunc)(K &, D &)) {
+	typedef void (*funcType)(K &, D &);
+
+	rbt__otherData__ = &someFunc;
+	rbt_setBase(curr, [] (rbtNode<K,D> *curr) -> void {
+		(*((funcType *)rbt__otherData__))(curr->key, curr->data);
+	});
+}
+
+/*
+ * function_identifier: Changes the key and data values of all nodes, in the red-black tree
+ *						Automatically repositions the nodes in the red-black tree
+ * parameters: 			A key value and a data value
+ * return value:		N/A
+*/
+template <typename K, typename D>
+void rbTree<K,D>::rbt_setAll(K key, D data) {
+	rbt__otherData__ = new std::byte **[2];
+	((K **)rbt__otherData__)[0] = &key;
+	((D **)rbt__otherData__)[1] = &data;
+
+	rbt_funcAllBase([] (rbtNode<K,D> **&IdxS, rbtNode<K,D> **IdxE) -> void {
+			// Cycles through all nodes of this red-black tree
+		while(IdxS != IdxE) {
+				// Changes the key and data of all values
+			(*IdxS)->key = *((K **)rbt__otherData__)[0];
+			(*IdxS)->data = *((D **)rbt__otherData__)[1];
+			IdxS++;
+		}
+	});
+	delete [] (std::byte **)rbt__otherData__;
+}
+
+/*
+ * function_identifier: Changes the key and data values of all nodes, in the red-black tree
+ *						Automatically repositions the nodes in the red-black tree
+ * parameters: 			A function that returns new key and data values by reference
+ * return value:		N/A
+*/
+template <typename K, typename D>
+void rbTree<K,D>::rbt_funcAll(void (*someFunc)(K &, D &)) {
+	typedef void (*funcType)(K &, D &);
+
+	rbt__otherData__ = &someFunc;
+	rbt_funcAllBase([] (rbtNode<K,D> **&IdxS, rbtNode<K,D> **IdxE) -> void {
+			// Cycles through all nodes of this red-black tree
+		while(IdxS != IdxE) {
+				// Changes the key and data of all values
+			(*((funcType *)rbt__otherData__))((*IdxS)->key, (*IdxS)->data);
+			IdxS++;
+		}
+	});
+}
+
 /*	============================================================================  */
 /* |                                                                            | */
 /* |                               KEY FUNCTIONS                                | */
@@ -57,29 +215,10 @@ void rbTree<K,D>::nodeReposition(rbtNode<K,D> **rbtNodes, rbtNode<K,D> **IdxS, r
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_setKey(rbtNode<K,D> *curr, K key) {
-		// Initializes values
-	rbtNode<K,D> **rbtNodes, **IdxS, **IdxE;
-
-		// Gets all nodes
-	IdxS = rbtNodes = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(true) {
-			// If the node is not found in this red-black tree, just return
-		if (IdxS == IdxE) {
-			delete [] rbtNodes;
-			return;
-		}
-			// Else, if node is found in this red-black tree, begin repositioning
-		if (*IdxS == curr)
-			break;
-			// Otherwise, check another node
-		IdxS++;
-	}
-
-		// Sets the node's key and begins repositioning
-	curr->key = key;
-	nodeReposition(rbtNodes, IdxS, IdxE, curr);
+	rbt__otherData__ = &key;
+	rbt_setBase(curr, [] (rbtNode<K,D> *curr) -> void {
+		curr->key = *((K *)rbt__otherData__);
+	});
 }
 
 /*
@@ -91,29 +230,12 @@ void rbTree<K,D>::rbt_setKey(rbtNode<K,D> *curr, K key) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_funcKey(rbtNode<K,D> *curr, K (*someFunc)()) {
-		// Initializes values
-	rbtNode<K,D> **rbtNodes, **IdxS, **IdxE;
+	typedef K (*funcType)();
 
-		// Gets all nodes
-	IdxS = rbtNodes = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(true) {
-			// If the node is not found in this red-black tree, just return
-		if (IdxS == IdxE) {
-			delete [] rbtNodes;
-			return;
-		}
-			// Else, if node is found in this red-black tree, begin repositioning
-		if (*IdxS == curr)
-			break;
-			// Otherwise, check another node
-		IdxS++;
-	}
-
-		// Sets the node's key and begins repositioning
-	curr->key = someFunc();
-	nodeReposition(rbtNodes, IdxS, IdxE, curr);
+	rbt__otherData__ = &someFunc;
+	rbt_setBase(curr, [] (rbtNode<K,D> *curr) -> void {
+		curr->key = (*((funcType *)rbt__otherData__))();
+	});
 }
 
 /*
@@ -124,30 +246,13 @@ void rbTree<K,D>::rbt_funcKey(rbtNode<K,D> *curr, K (*someFunc)()) {
  * return value:		N/A
 */
 template <typename K, typename D>
-void rbTree<K,D>::rbt_funcKey(rbtNode<K,D> *curr, K(*someFunc)(K, D)) {
-		// Initializes values
-	rbtNode<K,D> **rbtNodes, **IdxS, **IdxE;
+void rbTree<K,D>::rbt_funcKey(rbtNode<K,D> *curr, K (*someFunc)(K, D)) {
+	typedef K (*funcType)(K, D);
 
-		// Gets all nodes
-	IdxS = rbtNodes = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(true) {
-			// If the node is not found in this red-black tree, just return
-		if (IdxS == IdxE) {
-			delete [] rbtNodes;
-			return;
-		}
-			// Else, if node is found in this red-black tree, begin repositioning
-		if (*IdxS == curr)
-			break;
-			// Otherwise, check another node
-		IdxS++;
-	}
-
-		// Sets the node's key and begins repositioning
-	curr->key = someFunc(curr->key, curr->data);
-	nodeReposition(rbtNodes, IdxS, IdxE, curr);
+	rbt__otherData__ = &someFunc;
+	rbt_setBase(curr, [] (rbtNode<K,D> *curr) -> void {
+		curr->key = (*((funcType *)rbt__otherData__))(curr->key, curr->data);
+	});
 }
 
 /*
@@ -159,29 +264,12 @@ void rbTree<K,D>::rbt_funcKey(rbtNode<K,D> *curr, K(*someFunc)(K, D)) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_funcKeyK(rbtNode<K,D> *curr, K (*someFunc)(K)) {
-		// Initializes values
-	rbtNode<K,D> **rbtNodes, **IdxS, **IdxE;
+	typedef K (*funcType)(K);
 
-		// Gets all nodes
-	IdxS = rbtNodes = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(true) {
-			// If the node is not found in this red-black tree, just return
-		if (IdxS == IdxE) {
-			delete [] rbtNodes;
-			return;
-		}
-			// Else, if node is found in this red-black tree, begin repositioning
-		if (*IdxS == curr)
-			break;
-			// Otherwise, check another node
-		IdxS++;
-	}
-
-		// Sets the node's key and begins repositioning
-	curr->key = someFunc(curr->key);
-	nodeReposition(rbtNodes, IdxS, IdxE, curr);
+	rbt__otherData__ = &someFunc;
+	rbt_setBase(curr, [] (rbtNode<K,D> *curr) -> void {
+		curr->key = (*((funcType *)rbt__otherData__))(curr->key);
+	});
 }
 
 /*
@@ -193,29 +281,12 @@ void rbTree<K,D>::rbt_funcKeyK(rbtNode<K,D> *curr, K (*someFunc)(K)) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_funcKeyD(rbtNode<K,D> *curr, K (*someFunc)(D)) {
-		// Initializes values
-	rbtNode<K,D> **rbtNodes, **IdxS, **IdxE;
+	typedef K (*funcType)(D);
 
-		// Gets all nodes
-	IdxS = rbtNodes = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(true) {
-			// If the node is not found in this red-black tree, just return
-		if (IdxS == IdxE) {
-			delete [] rbtNodes;
-			return;
-		}
-			// Else, if node is found in this red-black tree, begin repositioning
-		if (*IdxS == curr)
-			break;
-			// Otherwise, check another node
-		IdxS++;
-	}
-
-		// Sets the node's key and begins repositioning
-	curr->key = someFunc(curr->data);
-	nodeReposition(rbtNodes, IdxS, IdxE, curr);
+	rbt__otherData__ = &someFunc;
+	rbt_setBase(curr, [] (rbtNode<K,D> *curr) -> void {
+		curr->key = (*((funcType *)rbt__otherData__))(curr->data);
+	});
 }
 
 /*
@@ -226,28 +297,13 @@ void rbTree<K,D>::rbt_funcKeyD(rbtNode<K,D> *curr, K (*someFunc)(D)) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_setAllKeys(K key) {
-		// Return if red-black tree is empty
-	if (!size)
-		return;
-
-		// Initializes values
-	rbtNode<K,D> **IdxS, **IdxE;
-
-		// Gets all nodes
-	IdxS = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(IdxS != IdxE)
-			// Changes the key of all values
-		(*IdxS++)->key = key;
-
-		// Repositions all nodes
-	IdxS -= size;
-	fooPtr<K,D> = keyDataCompair;
-	mergeSortCallerBase(IdxS, 0, size - 1);
-
-		// Clears array of nodes
-	delete [] IdxS;
+	rbt__otherData__ = &key;
+	rbt_funcAllBase([] (rbtNode<K,D> **&IdxS, rbtNode<K,D> **IdxE) -> void {
+			// Cycles through all nodes of this red-black tree
+		while(IdxS != IdxE)
+				// Changes the key of all values
+			(*IdxS++)->key = *((K *)rbt__otherData__);
+	});
 }
 
 /*
@@ -258,28 +314,15 @@ void rbTree<K,D>::rbt_setAllKeys(K key) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_funcAllKeys(K (*someFunc)()) {
-		// Return if red-black tree is empty
-	if (!size)
-		return;
+	typedef K (*funcType)();
 
-		// Initializes values
-	rbtNode<K,D> **IdxS, **IdxE;
-
-		// Gets all nodes
-	IdxS = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(IdxS != IdxE)
-			// Changes the keys of all values
-		(*IdxS++)->key = someFunc();
-
-		// Repositions all nodes
-	IdxS -= size;
-	fooPtr<K,D> = keyDataCompair;
-	mergeSortCallerBase(IdxS, 0, size - 1);
-
-		// Clears array of nodes
-	delete [] IdxS;
+	rbt__otherData__ = &someFunc;
+	rbt_funcAllBase([] (rbtNode<K,D> **&IdxS, rbtNode<K,D> **IdxE) -> void {
+			// Cycles through all nodes of this red-black tree
+		while(IdxS != IdxE)
+				// Changes the key of all values
+			(*IdxS++)->key = (*((funcType *)rbt__otherData__))();
+	});
 }
 
 /*
@@ -290,30 +333,17 @@ void rbTree<K,D>::rbt_funcAllKeys(K (*someFunc)()) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_funcAllKeys(K (*someFunc)(K, D)) {
-		// Return if red-black tree is empty
-	if (!size)
-		return;
+	typedef K (*funcType)(K, D);
 
-		// Initializes values
-	rbtNode<K,D> **IdxS, **IdxE;
-
-		// Gets all nodes
-	IdxS = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(IdxS != IdxE) {
-			// Changes the keys of all values
-		(*IdxS)->key = someFunc((*IdxS)->key, (*IdxS)->data);
-		IdxS++;
-	}
-
-		// Repositions all nodes
-	IdxS -= size;
-	fooPtr<K,D> = keyDataCompair;
-	mergeSortCallerBase(IdxS, 0, size - 1);
-
-		// Clears array of nodes
-	delete [] IdxS;
+	rbt__otherData__ = &someFunc;
+	rbt_funcAllBase([] (rbtNode<K,D> **&IdxS, rbtNode<K,D> **IdxE) -> void {
+			// Cycles through all nodes of this red-black tree
+		while(IdxS != IdxE) {
+				// Changes the key of all values
+			(*IdxS)->key = (*((funcType *)rbt__otherData__))((*IdxS)->key, (*IdxS)->data);
+			IdxS++;
+		}
+	});
 }
 
 /*
@@ -324,30 +354,17 @@ void rbTree<K,D>::rbt_funcAllKeys(K (*someFunc)(K, D)) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_funcAllKeysK(K (*someFunc)(K)) {
-		// Return if red-black tree is empty
-	if (!size)
-		return;
+	typedef K (*funcType)(K);
 
-		// Initializes values
-	rbtNode<K,D> **IdxS, **IdxE;
-
-		// Gets all nodes
-	IdxS = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(IdxS != IdxE) {
-			// Changes the keys of all values
-		(*IdxS)->key = someFunc((*IdxS)->key);
-		IdxS++;
-	}
-
-		// Repositions all nodes
-	IdxS -= size;
-	fooPtr<K,D> = keyDataCompair;
-	mergeSortCallerBase(IdxS, 0, size - 1);
-
-		// Clears array of nodes
-	delete [] IdxS;
+	rbt__otherData__ = &someFunc;
+	rbt_funcAllBase([] (rbtNode<K,D> **&IdxS, rbtNode<K,D> **IdxE) -> void {
+			// Cycles through all nodes of this red-black tree
+		while(IdxS != IdxE) {
+				// Changes the key of all values
+			(*IdxS)->key = (*((funcType *)rbt__otherData__))((*IdxS)->key);
+			IdxS++;
+		}
+	});
 }
 
 /*
@@ -358,30 +375,17 @@ void rbTree<K,D>::rbt_funcAllKeysK(K (*someFunc)(K)) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_funcAllKeysD(K (*someFunc)(D)) {
-		// Return if red-black tree is empty
-	if (!size)
-		return;
+	typedef K (*funcType)(D);
 
-		// Initializes values
-	rbtNode<K,D> **IdxS, **IdxE;
-
-		// Gets all nodes
-	IdxS = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(IdxS != IdxE) {
-			// Changes the keys of all values
-		(*IdxS)->key = someFunc((*IdxS)->data);
-		IdxS++;
-	}
-
-		// Repositions all nodes
-	IdxS -= size;
-	fooPtr<K,D> = keyDataCompair;
-	mergeSortCallerBase(IdxS, 0, size - 1);
-
-		// Clears array of nodes
-	delete [] IdxS;
+	rbt__otherData__ = &someFunc;
+	rbt_funcAllBase([] (rbtNode<K,D> **&IdxS, rbtNode<K,D> **IdxE) -> void {
+			// Cycles through all nodes of this red-black tree
+		while(IdxS != IdxE) {
+				// Changes the key of all values
+			(*IdxS)->key = (*((funcType *)rbt__otherData__))((*IdxS)->data);
+			IdxS++;
+		}
+	});
 }
 
 /*	============================================================================  */
@@ -399,29 +403,10 @@ void rbTree<K,D>::rbt_funcAllKeysD(K (*someFunc)(D)) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_setData(rbtNode<K,D> *curr, D data) {
-		// Initializes values
-	rbtNode<K,D> **rbtNodes, **IdxS, **IdxE;
-
-		// Gets all nodes
-	IdxS = rbtNodes = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(true) {
-			// If the node is not found in this red-black tree, just return
-		if (IdxS == IdxE) {
-			delete [] rbtNodes;
-			return;
-		}
-			// Else, if node is found in this red-black tree, begin repositioning
-		if (*IdxS == curr)
-			break;
-			// Otherwise, check another node
-		IdxS++;
-	}
-
-		// Sets the node's data and begins repositioning
-	curr->data = data;
-	nodeReposition(rbtNodes, IdxS, IdxE, curr);
+	rbt__otherData__ = &data;
+	rbt_setBase(curr, [] (rbtNode<K,D> *curr) -> void {
+		curr->data = (*((D *)rbt__otherData__));
+	});
 }
 
 /*
@@ -433,29 +418,12 @@ void rbTree<K,D>::rbt_setData(rbtNode<K,D> *curr, D data) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_funcData(rbtNode<K,D> *curr, D (*someFunc)()) {
-		// Initializes values
-	rbtNode<K,D> **rbtNodes, **IdxS, **IdxE;
+	typedef D (*funcType)();
 
-		// Gets all nodes
-	IdxS = rbtNodes = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(true) {
-			// If the node is not found in this red-black tree, just return
-		if (IdxS == IdxE) {
-			delete [] rbtNodes;
-			return;
-		}
-			// Else, if node is found in this red-black tree, begin repositioning
-		if (*IdxS == curr)
-			break;
-			// Otherwise, check another node
-		IdxS++;
-	}
-
-		// Sets the node's data and begins repositioning
-	curr->data = someFunc();
-	nodeReposition(rbtNodes, IdxS, IdxE, curr);
+	rbt__otherData__ = &someFunc;
+	rbt_setBase(curr, [] (rbtNode<K,D> *curr) -> void {
+		curr->data = (*((funcType *)rbt__otherData__))();
+	});
 }
 
 /*
@@ -467,29 +435,12 @@ void rbTree<K,D>::rbt_funcData(rbtNode<K,D> *curr, D (*someFunc)()) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_funcData(rbtNode<K,D> *curr, D (*someFunc)(K, D)) {
-		// Initializes values
-	rbtNode<K,D> **rbtNodes, **IdxS, **IdxE;
+	typedef D (*funcType)(K, D);
 
-		// Gets all nodes
-	IdxS = rbtNodes = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(true) {
-			// If the node is not found in this red-black tree, just return
-		if (IdxS == IdxE) {
-			delete [] rbtNodes;
-			return;
-		}
-			// Else, if node is found in this red-black tree, begin repositioning
-		if (*IdxS == curr)
-			break;
-			// Otherwise, check another node
-		IdxS++;
-	}
-
-		// Sets the node's data and begins repositioning
-	curr->data = someFunc(curr->key, curr->data);
-	nodeReposition(rbtNodes, IdxS, IdxE, curr);
+	rbt__otherData__ = &someFunc;
+	rbt_setBase(curr, [] (rbtNode<K,D> *curr) -> void {
+		curr->data = (*((funcType *)rbt__otherData__))(curr->key, curr->data);
+	});
 }
 
 /*
@@ -501,29 +452,12 @@ void rbTree<K,D>::rbt_funcData(rbtNode<K,D> *curr, D (*someFunc)(K, D)) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_funcDataK(rbtNode<K,D> *curr, D (*someFunc)(K)) {
-		// Initializes values
-	rbtNode<K,D> **rbtNodes, **IdxS, **IdxE;
+	typedef D (*funcType)(K);
 
-		// Gets all nodes
-	IdxS = rbtNodes = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(true) {
-			// If the node is not found in this red-black tree, just return
-		if (IdxS == IdxE) {
-			delete [] rbtNodes;
-			return;
-		}
-			// Else, if node is found in this red-black tree, begin repositioning
-		if (*IdxS == curr)
-			break;
-			// Otherwise, check another node
-		IdxS++;
-	}
-
-		// Sets the node's data and begins repositioning
-	curr->data = someFunc(curr->key);
-	nodeReposition(rbtNodes, IdxS, IdxE, curr);
+	rbt__otherData__ = &someFunc;
+	rbt_setBase(curr, [] (rbtNode<K,D> *curr) -> void {
+		curr->data = (*((funcType *)rbt__otherData__))(curr->key);
+	});
 }
 
 /*
@@ -535,29 +469,12 @@ void rbTree<K,D>::rbt_funcDataK(rbtNode<K,D> *curr, D (*someFunc)(K)) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_funcDataD(rbtNode<K,D> *curr, D (*someFunc)(D)) {
-		// Initializes values
-	rbtNode<K,D> **rbtNodes, **IdxS, **IdxE;
+	typedef D (*funcType)(D);
 
-		// Gets all nodes
-	IdxS = rbtNodes = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(true) {
-			// If the node is not found in this red-black tree, just return
-		if (IdxS == IdxE) {
-			delete [] rbtNodes;
-			return;
-		}
-			// Else, if node is found in this red-black tree, begin repositioning
-		if (*IdxS == curr)
-			break;
-			// Otherwise, check another node
-		IdxS++;
-	}
-
-		// Sets the node's data and begins repositioning
-	curr->data = someFunc(curr->data);
-	nodeReposition(rbtNodes, IdxS, IdxE, curr);
+	rbt__otherData__ = &someFunc;
+	rbt_setBase(curr, [] (rbtNode<K,D> *curr) -> void {
+		curr->data = (*((funcType *)rbt__otherData__))(curr->data);
+	});
 }
 
 /*
@@ -568,28 +485,13 @@ void rbTree<K,D>::rbt_funcDataD(rbtNode<K,D> *curr, D (*someFunc)(D)) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_setAllData(D data) {
-		// Return if red-black tree is empty
-	if (!size)
-		return;
-
-		// Initializes values
-	rbtNode<K,D> **IdxS, **IdxE;
-
-		// Gets all nodes
-	IdxS = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(IdxS != IdxE)
-			// Changes the data of all values
-		(*IdxS++)->data = data;
-
-		// Repositions all nodes
-	IdxS -= size;
-	fooPtr<K,D> = keyDataCompair;
-	mergeSortCallerBase(IdxS, 0, size - 1);
-
-		// Clears array of nodes
-	delete [] IdxS;
+	rbt__otherData__ = &data;
+	rbt_funcAllBase([] (rbtNode<K,D> **&IdxS, rbtNode<K,D> **IdxE) -> void {
+			// Cycles through all nodes of this red-black tree
+		while(IdxS != IdxE)
+				// Changes the data of all values
+			(*IdxS++)->data = (*((D *)rbt__otherData__));
+	});
 }
 
 /*
@@ -600,28 +502,15 @@ void rbTree<K,D>::rbt_setAllData(D data) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_funcAllData(D (*someFunc)()) {
-		// Return if red-black tree is empty
-	if (!size)
-		return;
+	typedef D (*funcType)();
 
-		// Initializes values
-	rbtNode<K,D> **IdxS, **IdxE;
-
-		// Gets all nodes
-	IdxS = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(IdxS != IdxE)
-			// Changes the data of all values
-		(*IdxS++)->data = someFunc();
-
-		// Repositions all nodes
-	IdxS -= size;
-	fooPtr<K,D> = keyDataCompair;
-	mergeSortCallerBase(IdxS, 0, size - 1);
-
-		// Clears array of nodes
-	delete [] IdxS;
+	rbt__otherData__ = &someFunc;
+	rbt_funcAllBase([] (rbtNode<K,D> **&IdxS, rbtNode<K,D> **IdxE) -> void {
+			// Cycles through all nodes of this red-black tree
+		while(IdxS != IdxE)
+				// Changes the data of all values
+			(*IdxS++)->data = (*((funcType *)rbt__otherData__))();
+	});
 }
 
 /*
@@ -632,30 +521,17 @@ void rbTree<K,D>::rbt_funcAllData(D (*someFunc)()) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_funcAllData(D (*someFunc)(K, D)) {
-		// Return if red-black tree is empty
-	if (!size)
-		return;
+	typedef D (*funcType)(K, D);
 
-		// Initializes values
-	rbtNode<K,D> **IdxS, **IdxE;
-
-		// Gets all nodes
-	IdxS = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(IdxS != IdxE) {
-			// Changes the data of all values
-		(*IdxS)->data = someFunc((*IdxS)->key, (*IdxS)->data);
-		IdxS++;
-	}
-
-		// Repositions all nodes
-	IdxS -= size;
-	fooPtr<K,D> = keyDataCompair;
-	mergeSortCallerBase(IdxS, 0, size - 1);
-
-		// Clears array of nodes
-	delete [] IdxS;
+	rbt__otherData__ = &someFunc;
+	rbt_funcAllBase([] (rbtNode<K,D> **&IdxS, rbtNode<K,D> **IdxE) -> void {
+			// Cycles through all nodes of this red-black tree
+		while(IdxS != IdxE) {
+				// Changes the data of all values
+			(*IdxS)->data = (*((funcType *)rbt__otherData__))((*IdxS)->key, (*IdxS)->data);
+			IdxS++;
+		}
+	});
 }
 
 /*
@@ -666,30 +542,17 @@ void rbTree<K,D>::rbt_funcAllData(D (*someFunc)(K, D)) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_funcAllDataK(D (*someFunc)(K)) {
-		// Return if red-black tree is empty
-	if (!size)
-		return;
+	typedef D (*funcType)(K);
 
-		// Initializes values
-	rbtNode<K,D> **IdxS, **IdxE;
-
-		// Gets all nodes
-	IdxS = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(IdxS != IdxE) {
-			// Changes the data of all values
-		(*IdxS)->data = someFunc((*IdxS)->key);
-		IdxS++;
-	}
-
-		// Repositions all nodes
-	IdxS -= size;
-	fooPtr<K,D> = keyDataCompair;
-	mergeSortCallerBase(IdxS, 0, size - 1);
-
-		// Clears array of nodes
-	delete [] IdxS;
+	rbt__otherData__ = &someFunc;
+	rbt_funcAllBase([] (rbtNode<K,D> **&IdxS, rbtNode<K,D> **IdxE) -> void {
+			// Cycles through all nodes of this red-black tree
+		while(IdxS != IdxE) {
+				// Changes the data of all values
+			(*IdxS)->data = (*((funcType *)rbt__otherData__))((*IdxS)->key);
+			IdxS++;
+		}
+	});
 }
 
 /*
@@ -700,30 +563,17 @@ void rbTree<K,D>::rbt_funcAllDataK(D (*someFunc)(K)) {
 */
 template <typename K, typename D>
 void rbTree<K,D>::rbt_funcAllDataD(D (*someFunc)(D)) {
-		// Return if red-black tree is empty
-	if (!size)
-		return;
+	typedef D (*funcType)(D);
 
-		// Initializes values
-	rbtNode<K,D> **IdxS, **IdxE;
-
-		// Gets all nodes
-	IdxS = rbt_getAllNodes(); IdxE = IdxS + size;
-
-		// Cycles through all nodes of this red-black tree
-	while(IdxS != IdxE) {
-			// Changes the data of all values
-		(*IdxS)->data = someFunc((*IdxS)->data);
-		IdxS++;
-	}
-
-		// Repositions all nodes
-	IdxS -= size;
-	fooPtr<K,D> = keyDataCompair;
-	mergeSortCallerBase(IdxS, 0, size - 1);
-
-		// Clears array of nodes
-	delete [] IdxS;
+	rbt__otherData__ = &someFunc;
+	rbt_funcAllBase([] (rbtNode<K,D> **&IdxS, rbtNode<K,D> **IdxE) -> void {
+			// Cycles through all nodes of this red-black tree
+		while(IdxS != IdxE) {
+				// Changes the data of all values
+			(*IdxS)->data = (*((funcType *)rbt__otherData__))((*IdxS)->data);
+			IdxS++;
+		}
+	});
 }
 
 #endif /* _rbt_VALUE */
